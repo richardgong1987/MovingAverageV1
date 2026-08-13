@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <!-- The linked robot sources are compiled without nullable analysis in MovingAverageV1.csproj.
+         Enabling it here would only produce warnings about production code this project cannot fix. -->
+    <Nullable>disable</Nullable>
+    <RobotRoot>..\..\MovingAverageV1\</RobotRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="xunit" Version="2.6.6" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.5.6" />
+  </ItemGroup>
+
+  <!-- The cBot's pure logic is LINKED in as source, never as a ProjectReference: a reference
+       would drag in cTrader.Automate / cAlgo.API, which cannot load under the test host.
+
+       Everything under MovingAverageV1/ is linked except the files listed below, which do
+       touch cAlgo.API. Adding a new cAlgo-free file needs no change here. Adding a file that
+       imports cAlgo.API breaks this build until it is added to the exclude — that failure is
+       the point: it forces the platform boundary to stay explicit. -->
+  <ItemGroup>
+    <CAlgoBoundFile Include="$(RobotRoot)MovingAverageV1.cs" />           <!-- Robot composition root -->
+    <CAlgoBoundFile Include="$(RobotRoot)Indicators\**\*.cs" />           <!-- wraps IIndicatorsAccessor -->
+    <CAlgoBoundFile Include="$(RobotRoot)LineDrawer\**\*.cs" />           <!-- draws on Chart -->
+    <CAlgoBoundFile Include="$(RobotRoot)Orders\PdhpdlOrderExecutor.cs" />
+    <CAlgoBoundFile Include="$(RobotRoot)OrderLogger\PdhpdlTradeCsvLogger.cs" />
+    <CAlgoBoundFile Include="$(RobotRoot)Signals\PdhpdlSignalDetector.cs" />
+    <CAlgoBoundFile Include="$(RobotRoot)Models\CAlgoSymbolModel.cs" />   <!-- adapts Symbol; tests fake IPdhpdlSymbolModel -->
+    <CAlgoBoundFile Include="$(RobotRoot)Models\DualRmaLinesConfigModel.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="$(RobotRoot)**\*.cs"
+             Exclude="$(RobotRoot)bin\**\*.cs;$(RobotRoot)obj\**\*.cs;@(CAlgoBoundFile)"
+             Link="%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

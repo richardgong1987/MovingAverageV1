@@ -2,7 +2,7 @@ using System;
 using cAlgo.Robots;
 using Xunit;
 
-namespace Pdhpdl.Tests.Risk {
+namespace MovingAverageV1.Tests.Risk {
     public class PdhpdlRiskGuardTests {
         [Fact]
         public void allows_new_orders_on_weekdays_outside_news_blackout() {

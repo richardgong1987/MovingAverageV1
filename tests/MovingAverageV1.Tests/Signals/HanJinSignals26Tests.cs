@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace Pdhpdl.Tests.Signals {
+namespace MovingAverageV1.Tests.Signals {
     public class HanJinSignals26Tests {
         // ── ① Pinbar ────────────────────────────────────────────────────────
         [Fact]
@@ -49,8 +49,9 @@ namespace Pdhpdl.Tests.Signals {
 
         // ── ③ Fractal ───────────────────────────────────────────────────────
         [Fact]
-        public void fractal_top_is_sell_when_middle_bar_dominates_both_neighbours() {
-            CandleModel current = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);   // [0] right
+        public void fractal_top_is_sell_when_middle_bar_dominates_and_current_confirms_bearish() {
+            // current closes bearish below the middle bar's body, with a short lower wick (0.2).
+            CandleModel current = new(open: 6.0, high: 6.5, low: 4.0, close: 4.5);   // [0] right
             CandleModel middle = new(open: 8.0, high: 9.0, low: 7.0, close: 8.0);    // [1]
             CandleModel earlier = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);   // [2] left
             (SignalSideModel top, SignalSideModel bottom) = HanJinSignals26.Fractal(current, middle, earlier);
@@ -59,13 +60,33 @@ namespace Pdhpdl.Tests.Signals {
         }
 
         [Fact]
-        public void fractal_bottom_is_buy_when_middle_bar_is_lowest_and_narrowest() {
+        public void fractal_top_is_none_when_middle_bar_dominates_but_current_does_not_confirm() {
+            // Same structure as above, but the current bar is a doji: no bearish confirmation.
             CandleModel current = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);
+            CandleModel middle = new(open: 8.0, high: 9.0, low: 7.0, close: 8.0);
+            CandleModel earlier = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);
+            (SignalSideModel top, _) = HanJinSignals26.Fractal(current, middle, earlier);
+            Assert.Equal(SignalSideModel.None, top);
+        }
+
+        [Fact]
+        public void fractal_bottom_is_buy_when_middle_bar_is_lowest_and_current_confirms_bullish() {
+            // current closes bullish above the middle bar's body, with a short upper wick (0.2).
+            CandleModel current = new(open: 4.0, high: 6.0, low: 3.5, close: 5.5);
             CandleModel middle = new(open: 2.0, high: 3.0, low: 1.0, close: 2.0);
             CandleModel earlier = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);
             (SignalSideModel top, SignalSideModel bottom) = HanJinSignals26.Fractal(current, middle, earlier);
             Assert.Equal(SignalSideModel.Buy, bottom);
             Assert.Equal(SignalSideModel.None, top);
+        }
+
+        [Fact]
+        public void fractal_bottom_is_none_when_middle_bar_is_lowest_but_current_does_not_confirm() {
+            CandleModel current = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);
+            CandleModel middle = new(open: 2.0, high: 3.0, low: 1.0, close: 2.0);
+            CandleModel earlier = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);
+            (_, SignalSideModel bottom) = HanJinSignals26.Fractal(current, middle, earlier);
+            Assert.Equal(SignalSideModel.None, bottom);
         }
 
         // ── ④ Harami ─────────────────────────────────────────────────────────

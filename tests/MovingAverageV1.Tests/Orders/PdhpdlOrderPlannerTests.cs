@@ -2,7 +2,7 @@ using System;
 using cAlgo.Robots;
 using Xunit;
 
-namespace Pdhpdl.Tests.Orders {
+namespace MovingAverageV1.Tests.Orders {
     public class PdhpdlOrderPlannerTests {
         // A signal at Close 100 with a 15-tick (0.15) offset applied to the detector's SL price.
         // Long:  stop = SL - 0.15,  risk = entry - stop.
@@ -130,7 +130,7 @@ namespace Pdhpdl.Tests.Orders {
                 RiskSafetyFactor = 1.0,
                 MinStopLossPips = minStopLossPips
             });
-            return new PdhpdlOrderPlanner(symbol, guard, stopOffsetTicks: 15, takeProfitR: 2.0, entryModel, riskPct: 1.0);
+            return new PdhpdlOrderPlanner(symbol, guard, stopOffsetTicks: 15, secondTargetR: 2.0, entryModel, riskPct: 1.0);
         }
 
         private static PdhpdlSignalModel LongSignal(double close, double low, double high) {

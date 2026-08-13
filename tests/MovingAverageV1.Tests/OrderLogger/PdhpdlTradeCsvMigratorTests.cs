@@ -1,7 +1,7 @@
 using cAlgo.Robots;
 using Xunit;
 
-namespace Pdhpdl.Tests.OrderLogger {
+namespace MovingAverageV1.Tests.OrderLogger {
     // Locks in the "多空"(Side) column removal: the migrator must upgrade files written by the
     // previous (with-Side) schema to the current 22-column schema, stripping column index 1.
     public class PdhpdlTradeCsvMigratorTests {

@@ -24,8 +24,8 @@ summarizing cTrader CLI backtests.
 - `docs/design/`: design decisions and behavioral specifications.
 - `pine-script/`: TradingView reference implementation and supporting documentation.
 - `scripts/`: cTrader batch-backtest and report-generation utilities.
-- `tests/Pdhpdl.Tests/`: xUnit files copied from the related PDH/PDL strategy; see Known
-  Limitations before using them.
+- `tests/MovingAverageV1.Tests/`: xUnit coverage of the cAlgo-free logic, which it links in
+  as source rather than referencing the cBot project.
 
 ## Development Rules
 
@@ -68,8 +68,14 @@ Build the current cBot from the repository root:
 dotnet build MovingAverageV1.sln -c Release
 ```
 
-For changes to pure logic, add or update focused xUnit coverage after correcting the test
-project linkage described below. For cAlgo-dependent behavior, compile the cBot and validate it
+Build the cBot and run the unit tests in one step:
+
+```bash
+./scripts/test.sh
+```
+
+For changes to pure logic, add or update focused xUnit coverage in
+`tests/MovingAverageV1.Tests/`. For cAlgo-dependent behavior, compile the cBot and validate it
 in cTrader's backtester; a successful .NET build does not verify trading behavior.
 
 Python backtest tooling prerequisites:
@@ -87,11 +93,9 @@ running or changing the batch workflow.
 
 ## Known Limitations
 
-- `tests/Pdhpdl.Tests/Pdhpdl.Tests.csproj` currently links source files from the sibling
-  `PDHPDL Break and Reverse v1` repository rather than this repository. Its results do not
-  validate `MovingAverageV1` until those links are corrected.
-- `scripts/test.sh` currently names the sibling solution and test project, so do not use it as
-  this repository's build/test entry point until it is repaired.
+- Test coverage reaches only the cAlgo-free classes. Everything the test project excludes —
+  the Robot itself, indicator wrappers, chart drawing, the order executor, the CSV logger and
+  the signal detector — is verified only by a cTrader backtest.
 - The production project uses `cTrader.Automate` with a wildcard version. Be alert to package
   resolution or API changes when builds differ between machines.
 
