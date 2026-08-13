@@ -25,7 +25,7 @@ public class PdhpdlOrderExecutor {
     private readonly IPdhpdlSymbolModel _symbolModel;
     private readonly ConsecutiveEntryGate _entryGate;
 
-    // 浮盈达到这么多个 R 就把止损推到保本位。
+    // 浮盈达到这么多个 R 就把止损推到保本位。0 表示关闭，止损全程留在开仓时的位置。
     private readonly double _breakevenTriggerR;
 
     // Once protection triggers, the stop moves this many ticks past the entry price, in the
@@ -84,6 +84,11 @@ public class PdhpdlOrderExecutor {
     // 止盈是开仓时定死的 TakeProfitR×R，已经挂在订单上由券商执行，这里不需要盯。
     // 持仓期间唯一要做的是浮盈达到 BreakevenTriggerR 时把止损推到保本位。
     private void ApplyBreakevenProtection() {
+        // 0 = 关闭。必须在这里挡掉：触发距离为 0 会让保护在开仓瞬间就「触发」，然后因为保本价
+        // 落在市价另一侧而被跳过，机会白白消耗掉——看着像没保护，实则是行情决定的哑火。
+        if (_breakevenTriggerR <= 0.0)
+            return;
+
         foreach (Position position in _robot.Positions.Where(IsStrategyPosition).ToArray())
             ApplyBreakevenProtection(position);
     }
