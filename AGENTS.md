@@ -2,35 +2,57 @@
 
 ## Project
 
-`MovingAverageV1` is a cTrader/cAlgo robot written in C#. The cBot targets
-`.NET 6` and combines candlestick reversal signals with dual-RMA trend filtering,
-risk-based order planning, chart markers, and CSV trade logging.
+`MovingAverageV1` is a cTrader/cAlgo cBot written in C#, targeting `.NET 6`. It trades
+candlestick reversal patterns (the "HanJin 26" signal set) filtered by a dual-RMA trend
+direction, sizes every order from a fixed percentage of account equity, exits at a fixed R
+multiple, and logs each trade to CSV.
 
-The repository also contains Pine Script references and Python utilities for running and
-summarizing cTrader CLI backtests.
+The repository also contains the Pine Script originals that the C# ports follow, and Python
+tooling for running and summarizing batch cTrader CLI backtests.
+
+**Naming caveat:** this codebase was copied from a sibling PDH/PDL strategy, so most types still
+carry a `Pdhpdl` prefix — `PdhpdlOrderPlanner`, `PdhpdlSignalModel`, `PdhpdlOrderExecutor` and so
+on. The prefix is historical only. None of these classes has anything to do with previous-day
+highs and lows; do not infer behaviour from it.
+
+## Strategy At A Glance
+
+| Step | Where | Rule |
+| --- | --- | --- |
+| Direction filter | `Utils.IsStrategyModeSatisfied`, `RmaUtils` | Fast/slow RMA relative position; `StrategyModel` picks how strict |
+| Entry signal | `HanJinSignals26` → `MainBiz` | Candlestick patterns on the last **closed** bar (pinbar, engulfing, fractal, harami) |
+| Stop | `PdhpdlOrderPlanner` | The pattern's own SL price, pushed out by `StopOffsetTicks` |
+| Sizing | `PdhpdlOrderPlanner` + `PdhpdlRiskGuard` | `RiskPct` of equity, converted through the symbol's pip value |
+| Take profit | `PdhpdlOrderPlanner` | Fixed `TakeProfitR × R`, written onto the order at entry and executed **broker-side** |
+| Breakeven | `PdhpdlOrderExecutor` | At `BreakevenTriggerR × R` of profit, the stop moves to entry ± `BreakevenOffsetTicks` |
+
+There is no partial/two-stage exit: reaching the take profit closes the whole position.
 
 ## Repository Map
 
-- `MovingAverageV1/MovingAverageV1.cs`: cBot composition root and
-  lifecycle callbacks.
-- `MovingAverageV1/Signals/`: closed-bar signal and candlestick-pattern detection.
-- `MovingAverageV1/Indicators/`: indicator series used by strategy filters.
-- `MovingAverageV1/Orders/`: pure order planning and cAlgo order execution.
+- `MovingAverageV1/MovingAverageV1.cs`: cBot composition root and lifecycle callbacks.
+- `MovingAverageV1/Signals/`: closed-bar signal assembly (`PdhpdlSignalDetector`) and the
+  candlestick pattern library (`HanJinSignals26`).
+- `MovingAverageV1/Biz/`: `MainBiz` — turns a scanned pattern set into a long/short decision.
+- `MovingAverageV1/Indicators/`: indicator series the strategy reads (`Atr14Series`,
+  `DualRmaSeries`) plus chart-only ports that feed nothing back (`MarketStructure`).
+- `MovingAverageV1/Orders/`: pure order planning (`PdhpdlOrderPlanner`) and cAlgo order
+  execution (`PdhpdlOrderExecutor`).
 - `MovingAverageV1/Risk/`: risk limits, trading-window rules, and position sizing.
-- `MovingAverageV1/OrderLogger/`: trade CSV writing and migration.
-- `MovingAverageV1/LineDrawer/`: chart-only signal markers.
+- `MovingAverageV1/OrderLogger/`: trade CSV writing and migration of older CSV layouts.
+- `MovingAverageV1/LineDrawer/`: chart-only drawing (RMA lines, signal markers).
 - `MovingAverageV1/Models/`: strategy enums and data-transfer models.
-- `MovingAverageV1/Biz/`: strategy coordination logic.
-- `docs/design/`: design decisions and behavioral specifications.
-- `pine-script/`: TradingView reference implementation and supporting documentation.
+- `MovingAverageV1/Utils/`: small shared helpers (`RmaUtils`, `Utils`).
+- `docs/signals/`: reference images and the PDF spec for the candlestick signals.
+- `pine-script/lib/`: the TradingView Pine originals the C# ports follow.
 - `scripts/`: cTrader batch-backtest and report-generation utilities.
-- `tests/MovingAverageV1.Tests/`: xUnit coverage of the cAlgo-free logic, which it links in
-  as source rather than referencing the cBot project.
+- `tests/MovingAverageV1.Tests/`: xUnit coverage of the cAlgo-free logic, which it links in as
+  source rather than referencing the cBot project.
 
 ## Development Rules
 
-- Read the relevant file in `docs/design/` before changing strategy behavior. Keep C#, Pine
-  Script, tests, and design documentation aligned when they describe the same rule.
+- Keep C#, Pine Script, tests and this document aligned when they describe the same rule. The
+  files in `pine-script/lib/` are the reference for anything that was ported.
 - Keep the Robot class as a composition root. Put signal detection, drawing, risk, execution,
   and persistence in their existing focused classes instead of adding more lifecycle logic.
 - Evaluate trading signals on completed candles. In `OnBar()`, the last fully closed candle is
@@ -41,6 +63,8 @@ summarizing cTrader CLI backtests.
   ticks, pips, lots, and volume-in-units, and use symbol normalization and limits.
 - Preserve order-management sequencing: manage positions, cancel expired pending orders, then
   evaluate a new closed-bar signal unless a documented strategy change requires otherwise.
+- The take profit is a static price set once at entry. Do not reintroduce per-tick target
+  watching in the executor without a documented reason to.
 - Preserve `AccessRights.FullAccess`; CSV logging requires filesystem access.
 - Do not expose chart-only constants as cBot parameters. Parameters should affect real strategy
   or operational behavior.
@@ -62,7 +86,7 @@ summarizing cTrader CLI backtests.
 
 ## Build And Verification
 
-Build the current cBot from the repository root:
+Build the cBot from the repository root:
 
 ```bash
 dotnet build MovingAverageV1.sln -c Release
@@ -96,6 +120,9 @@ running or changing the batch workflow.
 - Test coverage reaches only the cAlgo-free classes. Everything the test project excludes —
   the Robot itself, indicator wrappers, chart drawing, the order executor, the CSV logger and
   the signal detector — is verified only by a cTrader backtest.
+- PDH/PDL-era leftovers still in the tree: the `Pdhpdl` type prefix, the `KeyLevel` CSV column
+  (never populated any more, so always empty), and `SignalFamilyModel` (referenced by nothing).
+  Removing the CSV column is a schema change and would need `PdhpdlTradeCsvMigrator` handling.
 - The production project uses `cTrader.Automate` with a wildcard version. Be alert to package
   resolution or API changes when builds differ between machines.
 

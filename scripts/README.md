@@ -120,7 +120,8 @@ after all tasks finish, so concurrency doesn't affect it.
   the report JSON.
 
 Enums are passed through as their integer value — the script keeps no enum table, so a record
-can use any template's parameter set (the Dragon and pdhpdl templates do not share fields).
+can use any cBot's parameter set. Backend templates for different strategies do not share
+fields, and nothing here assumes they do.
 
 ## Output CSV filename
 
@@ -173,7 +174,7 @@ directory, summarizes them with `pandas`, and writes these files to
 parameter the batch actually used:
 
 ```
-文件名, recordId, 种类, 周期, 胜率%, 盈利金额, 盈利率%, 策略模式, 第一目标R, 起始日期, ...
+文件名, recordId, 种类, 周期, 胜率%, 盈利金额, 盈利率%, 策略模式, 止盈目标, 起始日期, ...
 17-XAUUSD-m5, 17, XAUUSD, m5, 52%, 1234.5$, 12.35%, Strong, 2, 2026-01-01, ...
 ```
 

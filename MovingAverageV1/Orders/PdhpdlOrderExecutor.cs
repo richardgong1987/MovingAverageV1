@@ -366,8 +366,7 @@ public class PdhpdlOrderExecutor {
         return _positionEntryEquities.TryGetValue(position.Id, out double entryEquity) ? entryEquity : 0.0;
     }
 
-    // 这笔持仓最近一次成交的平仓记录。部分平仓也会在 History 里留下一条，
-    // 第一目标的实际成交价和盈亏就从这里取。
+    // 这笔持仓最近一次成交的平仓记录，实际成交价和盈亏从这里取。
     private HistoricalTrade GetLastHistoricalTrade(int positionId) {
         HistoricalTrade[] closedTrades = _robot.History.FindByPositionId(positionId);
 

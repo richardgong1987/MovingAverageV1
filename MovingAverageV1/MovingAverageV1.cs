@@ -49,7 +49,7 @@ public class MovingAverageV1 : Robot {
     [Parameter("debug调试", DefaultValue = false, Group = "开发调试")]
     public bool IsDebug { get; set; }
 
-    [Parameter("输出文件名", DefaultValue = "Dragon-trades.csv", Group = "开发调试")]
+    [Parameter("输出文件名", DefaultValue = "MovingAverageV1-trades.csv", Group = "开发调试")]
     public string FileName { get; set; }
 
     [Parameter("均线来源", DefaultValue = MovingAverageSourceModel.HigherTimeFrame, Group = "均线")]
@@ -92,7 +92,7 @@ public class MovingAverageV1 : Robot {
         _orderExecutor = new PdhpdlOrderExecutor(this, SymbolName, Bars.TimeFrame.ToString(), planner, riskGuard, _csvLogger, symbolModel,
             BreakevenTriggerR, BreakevenOffsetTicks);
 
-        Print("*****Dragon Oscillator Reversal started.");
+        Print("*****MovingAverageV1 started.");
     }
 
     private void LaunchDebug() {

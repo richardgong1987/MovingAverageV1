@@ -3,7 +3,7 @@ namespace cAlgo.Robots;
 // C# port of the Pine library HanJinSignals26 (© richardgong1988). Pure classifier: given a
 // candle (or a 3-bar window ordered current -> previous -> earlier, i.e. Pine offsets
 // [0],[1],[2]), it returns which pattern fired and on which side. No cAlgo dependency, so it
-// is unit tested. Design: docs/design/hanjin-signals-26.md.
+// is unit tested. Reference images and spec: docs/signals/.
 public static class HanJinSignals26 {
     // Shared read-only defaults so the parameterless overloads reproduce the Pine defaults
     // without allocating. Never mutated.
@@ -89,7 +89,7 @@ public static class HanJinSignals26 {
         SignalSideModel single = earlierContainsPrevious ? HaramiDirection(previous, current) : SignalSideModel.None;
 
         // HaramiDouble intentionally mirrors HaramiSingle for legacy compatibility; it is not
-        // consumed by the order detector. See docs/design/hanjin-signals-26.md.
+        // consumed by the order detector. See docs/signals/.
         SignalSideModel doubleHarami = single;
 
         return (single, doubleHarami);

@@ -5,7 +5,7 @@
 脚本这边不再维护列名或白名单。
 
 报告文件名就是 <recordId>-<symbol>-<period>：recordId 已经唯一，文件名不再承担「记录参数」的
-职责，所以模板换一套参数（Dragon / pdhpdl 字段并不相同）也不用改这里。这条回测跑了什么参数由
+职责，所以模板换一套参数（不同策略的字段并不相同）也不用改这里。这条回测跑了什么参数由
 command.write_conditions 把接口记录原样留档到报告目录，汇总层从那里读（见 summary/conditions.py）。
 """
 
@@ -58,7 +58,7 @@ class ConditionRow:
 
     def as_condition_entry(self):
         """留档进 conditions.json 的记录：接口原文（含 label / options，汇总层要靠它出列名），
-        但去掉不参与回测的字段——否则汇总表里会出现一个 FileName=Dragon-trades.csv 的假文件名。
+        但去掉不参与回测的字段——否则汇总表里会出现一个 FileName=MovingAverageV1-trades.csv 的假文件名。
         """
         entry = dict(self.record)
         entry["parameterFields"] = [
