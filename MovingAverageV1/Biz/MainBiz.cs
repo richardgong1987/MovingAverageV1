@@ -30,10 +30,6 @@ public class MainBiz {
             return false;
         }
 
-        // if (!(signalModel.manuallyDragonBand.DragonBothBands || signalModel.manuallyDragonBand.DragonUpperBand)) {
-        //     return false;
-        // }
-
         // 三根判定 K 线都没碰到布林上轨，就不在做空的位置上。
         if (!signalModel.TouchesUpperBand)
             return false;
@@ -83,10 +79,6 @@ public class MainBiz {
         if (!Utils.IsStrategyModeSatisfied(signalModel, current, SignalSideModel.Buy)) {
             return false;
         }
-        //
-        // if (!(signalModel.manuallyDragonBand.DragonBothBands || signalModel.manuallyDragonBand.DragonLowerBand)) {
-        //     return false;
-        // }
 
         // 三根判定 K 线都没碰到布林下轨，就不在做多的位置上。
         if (!signalModel.TouchesLowerBand)

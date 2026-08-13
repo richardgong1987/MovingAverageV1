@@ -14,11 +14,9 @@ public class PdhpdlSignalDetector {
         _rmaSeries = rmaSeries;
     }
 
-    public PdhpdlSignalModel DetectOnClosedBar(StrategyModel strategy, BollingerFlatDetector detector,
-        ManuallyDragonBand manuallyDragonBand) {
+    public PdhpdlSignalModel DetectOnClosedBar(StrategyModel strategy, BollingerFlatDetector detector) {
         PdhpdlSignalModel signalModel = new();
         signalModel.Strategy = strategy;
-        signalModel.manuallyDragonBand = manuallyDragonBand;
         if (_chartBars.Count < 2)
             return signalModel;
 

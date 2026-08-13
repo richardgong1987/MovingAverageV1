@@ -46,8 +46,6 @@ public class PdhpdlSignalModel {
     // 信号 K 线上的布林中轨。样本不足时是 NaN。
     public double MiddleBand { get; set; }
 
-    public ManuallyDragonBand manuallyDragonBand { get; set; }
-
     public bool HasRmaData { get; set; }
 
     public DateTime RmaSourceBarTime { get; set; }

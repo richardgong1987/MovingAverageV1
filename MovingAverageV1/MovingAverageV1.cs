@@ -10,15 +10,6 @@ public class MovingAverageV1 : Robot {
     [Parameter("策略模式", DefaultValue = StrategyModel.All)]
     public StrategyModel Strategy { get; set; }
 
-    [Parameter("上下轨", DefaultValue = true, Group = "人工判断趋势")]
-    public bool DragonBothBands { get; set; }
-
-    [Parameter("上轨", DefaultValue = false, Group = "人工判断趋势")]
-    public bool DragonUpperBand { get; set; }
-
-    [Parameter("下轨", DefaultValue = false, Group = "人工判断趋势")]
-    public bool DragonLowerBand { get; set; }
-
     [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 10.0, Step = 0.1, Group = "风控配置")]
     public double RiskPct { get; set; }
 
@@ -105,7 +96,6 @@ public class MovingAverageV1 : Robot {
     private PdhpdlOrderExecutor _orderExecutor;
     private PdhpdlTradeCsvLogger _csvLogger;
     private Atr14Series _atr14;
-    private ManuallyDragonBand _manuallyDragonBand;
 
     protected override void OnStart() {
         LaunchDebug();
@@ -126,9 +116,6 @@ public class MovingAverageV1 : Robot {
         _detector = new BollingerFlatDetector(Bars, Chart, Indicators, BollingerPeriod, BollingerDeviations, LookbackBars, AtrPeriod,
             MaxSlopeAtrPerBar, MaxLineRangeAtr, MaxWidthVariation);
         _detector.DrawBollingerBands();
-        _manuallyDragonBand = new ManuallyDragonBand {
-            DragonBothBands = DragonBothBands, DragonUpperBand = DragonUpperBand, DragonLowerBand = DragonLowerBand
-        };
 
         Print("*****Dragon Oscillator Reversal started.");
     }
@@ -199,7 +186,7 @@ public class MovingAverageV1 : Robot {
     }
 
     private void HandleClosedBarSignal() {
-        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar(Strategy, _detector, _manuallyDragonBand);
+        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar(Strategy, _detector);
         if (!signalModel.HasData)
             return;
 
