@@ -65,24 +65,18 @@ public class PdhpdlOrderExecutor {
         _robot.Positions.Opened -= OnPositionOpened;
     }
 
-    public void ManageOpenPositions(BollingerFlatDetector detector) {
+    public void ManageOpenPositions() {
         CloseExposureBeforeRiskWindow();
-        ManageProfitTargets(detector);
+        ManageProfitTargets();
     }
 
-    // 两级止盈。目标价每次都用最后一根收盘 K 线的轨道重算，所以轨道走了目标也跟着走；
-    // 用收盘那根而不是正在走的那根，是为了目标价不逐 tick 抖。
-    private void ManageProfitTargets(BollingerFlatDetector detector) {
-        int closedBarIndex = _robot.Bars.Count - 2;
-
-        if (detector == null || closedBarIndex < 0)
-            return;
-
+    // 两级止盈，两级目标价都是入场价加固定的 N×R。
+    private void ManageProfitTargets() {
         foreach (Position position in _robot.Positions.Where(IsStrategyPosition).ToArray())
-            ManageProfitTargets(position, detector, closedBarIndex);
+            ManageProfitTargets(position);
     }
 
-    private void ManageProfitTargets(Position position, BollingerFlatDetector detector, int closedBarIndex) {
+    private void ManageProfitTargets(Position position) {
         if (!_positionRiskPrices.TryGetValue(position.Id, out double riskPrice) || riskPrice <= 0.0)
             return;
 
@@ -92,8 +86,7 @@ public class PdhpdlOrderExecutor {
         ProtectAtOneR(position, isLong, price, riskPrice);
 
         if (!_positionsPastFirstTarget.Contains(position.Id)) {
-            double firstTarget = ResolveTarget(isLong, position.EntryPrice, riskPrice, _exitConfig.FirstTargetR,
-                detector.bollingerBands.Main[closedBarIndex]);
+            double firstTarget = ResolveTarget(isLong, position.EntryPrice, riskPrice, _exitConfig.FirstTargetR);
 
             if (!HasReached(isLong, price, firstTarget))
                 return;
@@ -103,27 +96,15 @@ public class PdhpdlOrderExecutor {
             ClosePartial(position, firstTarget);
         }
 
-        // 多单的对面轨道是上轨，空单是下轨。价格一次跳过两级时，同一轮里接着平掉剩下的。
-        double oppositeBand = isLong ? detector.bollingerBands.Top[closedBarIndex] : detector.bollingerBands.Bottom[closedBarIndex];
-        double secondTarget = ResolveTarget(isLong, position.EntryPrice, riskPrice, _exitConfig.SecondTargetR, oppositeBand);
+        // 价格一次跳过两级时，同一轮里接着平掉剩下的。
+        double secondTarget = ResolveTarget(isLong, position.EntryPrice, riskPrice, _exitConfig.SecondTargetR);
 
         if (HasReached(isLong, price, secondTarget))
             CloseRemainder(position, secondTarget);
     }
 
-    // 目标价 = 顺盈利方向上「N×R」与轨道价中更近的那个，谁先被价格碰到算谁。
-    // 轨道是 NaN、或者落在入场价的亏损那一侧时忽略它，只用 R 目标——否则 Min/Max 会选中
-    // 那个已经在亏损侧的价，开仓瞬间就判定「达标」。
-    private static double ResolveTarget(bool isLong, double entryPrice, double riskPrice, double targetR, double bandPrice) {
-        double rTarget = isLong ? entryPrice + targetR * riskPrice : entryPrice - targetR * riskPrice;
-
-        if (double.IsNaN(bandPrice))
-            return rTarget;
-
-        if (isLong)
-            return bandPrice > entryPrice ? Math.Min(rTarget, bandPrice) : rTarget;
-
-        return bandPrice < entryPrice ? Math.Max(rTarget, bandPrice) : rTarget;
+    private static double ResolveTarget(bool isLong, double entryPrice, double riskPrice, double targetR) {
+        return isLong ? entryPrice + targetR * riskPrice : entryPrice - targetR * riskPrice;
     }
 
     private static bool HasReached(bool isLong, double price, double targetPrice) {

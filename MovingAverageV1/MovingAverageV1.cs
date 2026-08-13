@@ -52,28 +52,6 @@ public class MovingAverageV1 : Robot {
     [Parameter("输出文件名", DefaultValue = "Dragon-trades.csv", Group = "开发调试")]
     public string FileName { get; set; }
 
-
-    [Parameter("BB Period(长度)", DefaultValue = 60, MinValue = 2, Group = "布林带参数")]
-    public int BollingerPeriod { get; set; }
-
-    [Parameter("BB Deviations(标准差)", DefaultValue = 2.0, MinValue = 0.1, Group = "布林带参数")]
-    public double BollingerDeviations { get; set; }
-
-    [Parameter("Lookback Bars", DefaultValue = 48, MinValue = 5, Group = "布林带参数")]
-    public int LookbackBars { get; set; }
-
-    [Parameter("ATR Period", DefaultValue = 14, MinValue = 2, Group = "布林带参数")]
-    public int AtrPeriod { get; set; }
-
-    [Parameter("Max Slope (ATR/Bar)", DefaultValue = 0.02, MinValue = 0, Group = "布林带参数")]
-    public double MaxSlopeAtrPerBar { get; set; }
-
-    [Parameter("Max Line Range (ATR)", DefaultValue = 1.5, MinValue = 0, Group = "布林带参数")]
-    public double MaxLineRangeAtr { get; set; }
-
-    [Parameter("Max Width Variation", DefaultValue = 0.25, MinValue = 0, Group = "布林带参数")]
-    public double MaxWidthVariation { get; set; }
-
     [Parameter("均线来源", DefaultValue = MovingAverageSourceModel.HigherTimeFrame, Group = "均线")]
     public MovingAverageSourceModel MaSource { get; set; }
 
@@ -85,8 +63,6 @@ public class MovingAverageV1 : Robot {
 
     [Parameter("均线周期(分钟)", DefaultValue = 120, MinValue = 1, Group = "均线")]
     public int MaTimeFrameMinutes { get; set; }
-
-    private BollingerFlatDetector _detector;
 
     private DualRmaSeries _rmaSeries;
     private DualRmaLines _movingAverageLines;
@@ -112,10 +88,6 @@ public class MovingAverageV1 : Robot {
         var planner = new PdhpdlOrderPlanner(symbolModel, riskGuard, StopOffsetTicks, SecondTargetR, EntryModel, RiskPct);
         _orderExecutor = new PdhpdlOrderExecutor(this, SymbolName, Bars.TimeFrame.ToString(), planner, riskGuard, _csvLogger, symbolModel,
             BuildExitConfig());
-
-        _detector = new BollingerFlatDetector(Bars, Chart, Indicators, BollingerPeriod, BollingerDeviations, LookbackBars, AtrPeriod,
-            MaxSlopeAtrPerBar, MaxLineRangeAtr, MaxWidthVariation);
-        _detector.DrawBollingerBands();
 
         Print("*****Dragon Oscillator Reversal started.");
     }
@@ -174,19 +146,18 @@ public class MovingAverageV1 : Robot {
 
     protected override void OnBar() {
         _movingAverageLines?.Draw();
-        _detector.DrawBollingerBands();
-        _orderExecutor?.ManageOpenPositions(_detector);
+        _orderExecutor?.ManageOpenPositions();
         // 先撤过期挂单再看新信号：让作废的挂单不再占住「本品种已有挂单」这个名额。
         _orderExecutor?.CancelExpiredPendingOrders(Bars.Count - 2);
         HandleClosedBarSignal();
     }
 
     protected override void OnTick() {
-        _orderExecutor?.ManageOpenPositions(_detector);
+        _orderExecutor?.ManageOpenPositions();
     }
 
     private void HandleClosedBarSignal() {
-        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar(Strategy, _detector);
+        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar(Strategy);
         if (!signalModel.HasData)
             return;
 
@@ -208,12 +179,5 @@ public class MovingAverageV1 : Robot {
 
     protected override void OnStop() {
         Print("*****cBot stopped.*******************");
-    }
-
-    protected override void OnBarClosed() {
-        bool isFlat = _detector.IsFlat();
-        _detector.DrawBollingerBands();
-        Chart.DrawStaticText("BollingerFlatState", isFlat ? "BOLLINGER: FLAT" : "BOLLINGER: NOT FLAT", VerticalAlignment.Top,
-            HorizontalAlignment.Left, isFlat ? Color.LimeGreen : Color.OrangeRed);
     }
 }

@@ -3,9 +3,6 @@ using System;
 namespace cAlgo.Robots;
 
 public class MainBiz {
-    // 开仓点到中轨至少要留出这么多个 R 的空间，不够就不值得开。
-    private const double MinMiddleBandDistanceR = 1.1;
-
     public static void Evaluate(PdhpdlSignalModel signalModel, CandleModel current, CandleModel previous, CandleModel earlier) {
         HanJinSignalScanModel scanResult = HanJinSignals26.Scan(current, previous, earlier);
         signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous);
@@ -30,24 +27,16 @@ public class MainBiz {
             return false;
         }
 
-        // 三根判定 K 线都没碰到布林上轨，就不在做空的位置上。
-        if (!signalModel.TouchesUpperBand)
-            return false;
-
-        if (!MatchesShortPattern(signalModel, scanResult, current, previous))
-            return false;
-
-        // 空单往下走，中轨在开仓点下方才算有空间。
-        return HasRoomToMiddleBand(signalModel, current, current.Close - signalModel.MiddleBand);
+        return MatchesShortPattern(signalModel, scanResult, current, previous);
     }
 
     private static bool MatchesShortPattern(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
         CandleModel previous) {
-        if (ShortPinBar(signalModel, scanResult, current) && signalModel.TouchesUpperBandCurrent) {
+        if (ShortPinBar(signalModel, scanResult, current)) {
             return true;
         }
 
-        if (ShortEngulf(signalModel, scanResult, current) && signalModel.TouchesUpperBandCurrent) {
+        if (ShortEngulf(signalModel, scanResult, current)) {
             return true;
         }
 
@@ -80,24 +69,16 @@ public class MainBiz {
             return false;
         }
 
-        // 三根判定 K 线都没碰到布林下轨，就不在做多的位置上。
-        if (!signalModel.TouchesLowerBand)
-            return false;
-
-        if (!MatchesLongPattern(signalModel, scanResult, current, previous))
-            return false;
-
-        // 多单往上走，中轨在开仓点上方才算有空间。
-        return HasRoomToMiddleBand(signalModel, current, signalModel.MiddleBand - current.Close);
+        return MatchesLongPattern(signalModel, scanResult, current, previous);
     }
 
     private static bool MatchesLongPattern(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
         CandleModel previous) {
-        if (LongPinbar(signalModel, scanResult, current) && signalModel.TouchesLowerBandCurrent) {
+        if (LongPinbar(signalModel, scanResult, current)) {
             return true;
         }
 
-        if (LongEngulf(signalModel, scanResult, current) && signalModel.TouchesLowerBandCurrent) {
+        if (LongEngulf(signalModel, scanResult, current)) {
             return true;
         }
 
@@ -110,21 +91,6 @@ public class MainBiz {
         }
 
         return false;
-    }
-
-    // 形态确定了 SL 之后才有 R 可算，所以这道闸门只能放在形态匹配之后。
-    // distanceToMiddle 是顺着盈利方向的有符号距离：中轨跑到反方向去了就是负数，直接不合格。
-    // R 用「收盘价到 SL」近似，与 PdhpdlOrderPlanner 的真实 R 差一个止损偏移和回撤入场模式。
-    private static bool HasRoomToMiddleBand(PdhpdlSignalModel signalModel, CandleModel current, double distanceToMiddle) {
-        if (double.IsNaN(distanceToMiddle))
-            return false;
-
-        double risk = Math.Abs(current.Close - signalModel.SL);
-
-        if (risk <= 0.0)
-            return false;
-
-        return distanceToMiddle >= MinMiddleBandDistanceR * risk;
     }
 
     private static bool ShortTop(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,

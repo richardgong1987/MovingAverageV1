@@ -3,7 +3,7 @@
 ## Project
 
 `MovingAverageV1` is a cTrader/cAlgo robot written in C#. The cBot targets
-`.NET 6` and combines candlestick reversal signals with Bollinger-band flatness detection,
+`.NET 6` and combines candlestick reversal signals with dual-RMA trend filtering,
 risk-based order planning, chart markers, and CSV trade logging.
 
 The repository also contains Pine Script references and Python utilities for running and

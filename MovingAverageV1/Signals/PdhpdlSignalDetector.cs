@@ -14,7 +14,7 @@ public class PdhpdlSignalDetector {
         _rmaSeries = rmaSeries;
     }
 
-    public PdhpdlSignalModel DetectOnClosedBar(StrategyModel strategy, BollingerFlatDetector detector) {
+    public PdhpdlSignalModel DetectOnClosedBar(StrategyModel strategy) {
         PdhpdlSignalModel signalModel = new();
         signalModel.Strategy = strategy;
         if (_chartBars.Count < 2)
@@ -33,45 +33,12 @@ public class PdhpdlSignalDetector {
         signalModel.High = current.High;
         signalModel.Low = current.Low;
 
-        // 布林带逐根变化，每根 K 线只能和它自己那一根的带值比。bar index 只有这里有，
-        // 所以触碰判断在这里算完，MainBiz 只读结果。
-        signalModel.TouchesUpperBand = AnyBarTouchesBand(detector.bollingerBands.Top, closedBarIndex, current, previous, earlier);
-        signalModel.TouchesUpperBandCurrent = TouchesBand(detector.bollingerBands.Top, closedBarIndex, current);
-        signalModel.TouchesUpperBandPrevious = TouchesBand(detector.bollingerBands.Top, closedBarIndex - 1, previous);
-        signalModel.TouchesUpperBandEarlier = TouchesBand(detector.bollingerBands.Top, closedBarIndex - 2, earlier);
-
-        signalModel.TouchesLowerBand = AnyBarTouchesBand(detector.bollingerBands.Bottom, closedBarIndex, current, previous, earlier);
-        signalModel.TouchesLowerBandCurrent = TouchesBand(detector.bollingerBands.Bottom, closedBarIndex, current);
-        signalModel.TouchesLowerBandPrevious = TouchesBand(detector.bollingerBands.Bottom, closedBarIndex - 1, previous);
-        signalModel.TouchesLowerBandEarlier = TouchesBand(detector.bollingerBands.Bottom, closedBarIndex - 2, earlier);
-
-        // 中轨：MainBiz 用它算「开仓点到中轨还有几个 R」的空间过滤。
-        signalModel.MiddleBand = detector.bollingerBands.Main[closedBarIndex];
         FillRmaData(signalModel);
         MainBiz.Evaluate(signalModel, current, previous, earlier);
 
         return signalModel;
     }
 
-    private static bool AnyBarTouchesBand(IndicatorDataSeries band, int closedBarIndex, CandleModel current, CandleModel previous,
-        CandleModel earlier) {
-        return TouchesBand(band, closedBarIndex, current) || TouchesBand(band, closedBarIndex - 1, previous) ||
-               TouchesBand(band, closedBarIndex - 2, earlier);
-    }
-
-    // 触碰 = 这根 K 线的最高/最低价把该根的带值夹在中间。
-    private static bool TouchesBand(IndicatorDataSeries band, int barIndex, CandleModel candle) {
-        if (barIndex < 0)
-            return false;
-
-        double bandValue = band[barIndex];
-
-        // 样本不足的前几根上布林带是 NaN。NaN 参与比较恒为 false，显式挡掉是为了让意图看得见。
-        if (double.IsNaN(bandValue))
-            return false;
-
-        return candle.Low <= bandValue && candle.High >= bandValue;
-    }
 
     private CandleModel ReadCandle(int index) {
         return new CandleModel(open: _chartBars.OpenPrices[index], high: _chartBars.HighPrices[index], low: _chartBars.LowPrices[index],
