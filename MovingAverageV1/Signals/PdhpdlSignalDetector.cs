@@ -9,9 +9,15 @@ namespace cAlgo.Robots;
 public class PdhpdlSignalDetector {
     private readonly Bars _chartBars;
     private readonly DualRmaSeries _rmaSeries;
-    public PdhpdlSignalDetector(Bars chartBars,DualRmaSeries rmaSeries) {
+    private readonly MarketStructure _marketStructure;
+    private readonly ConsecutiveEntryGate _entryGate;
+
+    public PdhpdlSignalDetector(Bars chartBars, DualRmaSeries rmaSeries, MarketStructure marketStructure,
+        ConsecutiveEntryGate entryGate) {
         _chartBars = chartBars;
         _rmaSeries = rmaSeries;
+        _marketStructure = marketStructure;
+        _entryGate = entryGate;
     }
 
     public PdhpdlSignalModel DetectOnClosedBar(StrategyModel strategy) {
@@ -33,8 +39,11 @@ public class PdhpdlSignalDetector {
         signalModel.High = current.High;
         signalModel.Low = current.Low;
 
+        signalModel.LowerLowCount = _marketStructure.LowerLowCount;
+        signalModel.HigherHighCount = _marketStructure.HigherHighCount;
+
         FillRmaData(signalModel);
-        MainBiz.Evaluate(signalModel, current, previous, earlier);
+        MainBiz.Evaluate(signalModel, current, previous, earlier, _entryGate);
 
         return signalModel;
     }

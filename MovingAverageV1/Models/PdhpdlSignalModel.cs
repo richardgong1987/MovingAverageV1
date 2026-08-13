@@ -31,6 +31,11 @@ public class PdhpdlSignalModel {
 
     public bool IsBigK { get; set; }
 
+    // MarketStructure 到这根 K 线为止累计标出的 LL / HH 次数，供 ConsecutiveEntryGate 比较。
+    public int LowerLowCount { get; set; }
+
+    public int HigherHighCount { get; set; }
+
     public bool HasRmaData { get; set; }
 
     public DateTime RmaSourceBarTime { get; set; }

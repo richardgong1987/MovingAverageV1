@@ -61,6 +61,12 @@ public class MarketStructure {
     private double _previousLow = double.NaN;
     private int _latestLowIndex = -1;
 
+    // 图上每标出一个 LL / HH 就 +1，只增不减。调用方靠「和上次记下的值比有没有变大」来判断
+    // 这中间有没有新出现一个结构点，见 ConsecutiveEntryGate。
+    public int LowerLowCount { get; private set; }
+
+    public int HigherHighCount { get; private set; }
+
     public MarketStructure(Chart chart, Bars bars) {
         _chart = chart;
         _bars = bars;
@@ -101,16 +107,24 @@ public class MarketStructure {
         // swing is ever recorded there.
         if (_hasPreviousTrend && trend != previousTrend) {
             // Flipping up confirms the low that ended the decline; flipping down confirms the high.
+            // 计数只在这里做，不在 DrawSwing 里：每次翻转都会把两边的标签重画一遍，在那里数会翻倍。
+            // 判断式和 DrawSwing 的 isLowerLow / isHigherHigh 一致，所以计数和图上的标签永远同步。
             if (trend == 1) {
                 _previousLow = _latestLow;
                 _latestLow = swingLow;
                 _latestLowIndex = swingLowIndex;
+
+                if (_latestLow < _previousLow)
+                    LowerLowCount++;
             }
 
             if (trend == -1) {
                 _previousHigh = _latestHigh;
                 _latestHigh = swingHigh;
                 _latestHighIndex = swingHighIndex;
+
+                if (_latestHigh > _previousHigh)
+                    HigherHighCount++;
             }
 
             DrawSwing(trend);

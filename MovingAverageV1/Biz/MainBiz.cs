@@ -3,14 +3,15 @@ using System;
 namespace cAlgo.Robots;
 
 public class MainBiz {
-    public static void Evaluate(PdhpdlSignalModel signalModel, CandleModel current, CandleModel previous, CandleModel earlier) {
+    public static void Evaluate(PdhpdlSignalModel signalModel, CandleModel current, CandleModel previous, CandleModel earlier,
+        ConsecutiveEntryGate entryGate) {
         HanJinSignalScanModel scanResult = HanJinSignals26.Scan(current, previous, earlier);
-        signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous);
-        signalModel.IsLongSignal = IsLongSignal(signalModel, scanResult, current, previous);
+        signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous, entryGate);
+        signalModel.IsLongSignal = IsLongSignal(signalModel, scanResult, current, previous, entryGate);
     }
 
     private static bool IsShortSignal(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
-        CandleModel previous) {
+        CandleModel previous, ConsecutiveEntryGate entryGate) {
         if (!signalModel.HasRmaData)
             return false;
 
@@ -27,7 +28,11 @@ public class MainBiz {
             return false;
         }
 
-        return MatchesShortPattern(signalModel, scanResult, current, previous);
+        if (!MatchesShortPattern(signalModel, scanResult, current, previous))
+            return false;
+
+        // 连续第 2 笔以上的作空，必须等 MarketStructure 又新标出一个 LL。
+        return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Short, signalModel.LowerLowCount, signalModel.HigherHighCount);
     }
 
     private static bool MatchesShortPattern(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
@@ -52,7 +57,7 @@ public class MainBiz {
     }
 
     private static bool IsLongSignal(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
-        CandleModel previous) {
+        CandleModel previous, ConsecutiveEntryGate entryGate) {
         if (!signalModel.HasRmaData)
             return false;
 
@@ -69,7 +74,11 @@ public class MainBiz {
             return false;
         }
 
-        return MatchesLongPattern(signalModel, scanResult, current, previous);
+        if (!MatchesLongPattern(signalModel, scanResult, current, previous))
+            return false;
+
+        // 连续第 2 笔以上的作多，必须等 MarketStructure 又新标出一个 HH。
+        return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Long, signalModel.LowerLowCount, signalModel.HigherHighCount);
     }
 
     private static bool MatchesLongPattern(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,

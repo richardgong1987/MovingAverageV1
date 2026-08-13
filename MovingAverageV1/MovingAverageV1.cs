@@ -7,7 +7,7 @@ namespace cAlgo.Robots;
 
 [Robot(TimeZone = TimeZones.TokyoStandardTime, AccessRights = AccessRights.FullAccess, AddIndicators = false)]
 public class MovingAverageV1 : Robot {
-    [Parameter("策略模式", DefaultValue = StrategyModel.All)]
+    [Parameter("策略模式", DefaultValue = StrategyModel.Strong)]
     public StrategyModel Strategy { get; set; }
 
     [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 10.0, Step = 0.1, Group = "风控配置")]
@@ -80,7 +80,10 @@ public class MovingAverageV1 : Robot {
         _marketStructure = new MarketStructure(Chart, Bars);
         _marketStructure.Update();
         _atr14 = new Atr14Series(Indicators, Bars);
-        _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries);
+
+        // 同一个闸门实例两边共用：detector 侧读它决定放不放行，executor 侧在仓位真的开出来时写它。
+        var entryGate = new ConsecutiveEntryGate();
+        _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries, _marketStructure, entryGate);
         _signalMarkers = new PdhpdlSignalMarkers(Chart, Symbol.TickSize);
 
         _csvLogger = new PdhpdlTradeCsvLogger(ResetTradeLogOnStart, ResolveReportsDirectory(), FileName);
@@ -90,7 +93,7 @@ public class MovingAverageV1 : Robot {
         var symbolModel = new CAlgoSymbolModel(Symbol);
         var planner = new PdhpdlOrderPlanner(symbolModel, riskGuard, StopOffsetTicks, TakeProfitR, EntryModel, RiskPct);
         _orderExecutor = new PdhpdlOrderExecutor(this, SymbolName, Bars.TimeFrame.ToString(), planner, riskGuard, _csvLogger, symbolModel,
-            BreakevenTriggerR, BreakevenOffsetTicks);
+            entryGate, BreakevenTriggerR, BreakevenOffsetTicks);
 
         Print("*****MovingAverageV1 started.");
     }

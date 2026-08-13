@@ -23,6 +23,7 @@ public class PdhpdlOrderExecutor {
     private readonly PdhpdlRiskGuard _riskGuard;
     private readonly PdhpdlTradeCsvLogger _csvLogger;
     private readonly IPdhpdlSymbolModel _symbolModel;
+    private readonly ConsecutiveEntryGate _entryGate;
 
     // 浮盈达到这么多个 R 就把止损推到保本位。
     private readonly double _breakevenTriggerR;
@@ -35,6 +36,10 @@ public class PdhpdlOrderExecutor {
     private readonly Dictionary<string, double> _pendingEntryEquitiesByLabel = new();
     private readonly Dictionary<string, double> _pendingRiskPricesByLabel = new();
     private readonly Dictionary<int, int> _pendingOrderBarIndexById = new();
+    // 下单时先按 label 记下方向和当时的 LL/HH 计数，等仓位真的开出来（OnPositionOpened）再交给
+    // 闸门。挂单没成交就撤掉的那些，永远不会走到记账这一步。
+    private readonly Dictionary<string, EntryGateSnapshot> _pendingGateSnapshotsByLabel = new();
+
     private readonly Dictionary<int, string> _positionCsvIds = new();
     private readonly Dictionary<int, double> _positionEntryEquities = new();
 
@@ -46,7 +51,8 @@ public class PdhpdlOrderExecutor {
     private readonly HashSet<int> _positionsProtected = new();
 
     public PdhpdlOrderExecutor(Robot robot, string symbolName, string timeFrame, PdhpdlOrderPlanner planner, PdhpdlRiskGuard riskGuard,
-        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, double breakevenTriggerR, int breakevenOffsetTicks) {
+        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, ConsecutiveEntryGate entryGate, double breakevenTriggerR,
+        int breakevenOffsetTicks) {
         _robot = robot;
         _symbolName = symbolName;
         _timeFrame = timeFrame;
@@ -54,6 +60,7 @@ public class PdhpdlOrderExecutor {
         _riskGuard = riskGuard;
         _csvLogger = csvLogger;
         _symbolModel = symbolModel;
+        _entryGate = entryGate;
         _breakevenTriggerR = breakevenTriggerR;
         _breakevenOffsetTicks = breakevenOffsetTicks;
 
@@ -170,7 +177,15 @@ public class PdhpdlOrderExecutor {
         planModel.KeyLevel = signalModel.KeyLevel;
         planModel.SignalBarIndex = signalModel.BarIndex;
 
-        return ExecutePlan(planModel);
+        // 快照必须在下单之前放好：市价单的 Positions.Opened 可能在 SubmitOrder 里就回调了。
+        _pendingGateSnapshotsByLabel[planModel.Label] =
+            new EntryGateSnapshot(planModel.DirectionModel, signalModel.LowerLowCount, signalModel.HigherHighCount);
+
+        if (ExecutePlan(planModel))
+            return true;
+
+        _pendingGateSnapshotsByLabel.Remove(planModel.Label);
+        return false;
     }
 
     private bool HasOpenSymbolPosition() {
@@ -231,6 +246,7 @@ public class PdhpdlOrderExecutor {
         _pendingCsvIdsByLabel.Remove(order.Label);
         _pendingEntryEquitiesByLabel.Remove(order.Label);
         _pendingRiskPricesByLabel.Remove(order.Label);
+        _pendingGateSnapshotsByLabel.Remove(order.Label);
     }
 
     private void CloseExposureBeforeRiskWindow() {
@@ -328,6 +344,32 @@ public class PdhpdlOrderExecutor {
             _positionRiskPrices[args.Position.Id] = riskPrice;
             _pendingRiskPricesByLabel.Remove(args.Position.Label);
         }
+
+        RecordEntryForGate(args.Position.Label);
+    }
+
+    // 仓位真正开出来才算一笔同向入场。用的是下单那一刻的 LL/HH 计数，也就是闸门放行时比对过的
+    // 那个基准，这样「一个 LL 放行一笔」才对得上。
+    private void RecordEntryForGate(string label) {
+        if (string.IsNullOrWhiteSpace(label) || !_pendingGateSnapshotsByLabel.TryGetValue(label, out EntryGateSnapshot snapshot))
+            return;
+
+        _pendingGateSnapshotsByLabel.Remove(label);
+        _entryGate.RecordEntry(snapshot.Direction, snapshot.LowerLowCount, snapshot.HigherHighCount);
+        _robot.Print("*****Entry recorded | Side: {0}, ConsecutiveCount: {1}, LL: {2}, HH: {3}", snapshot.Direction,
+            _entryGate.ConsecutiveCount, snapshot.LowerLowCount, snapshot.HigherHighCount);
+    }
+
+    private readonly struct EntryGateSnapshot {
+        public EntryGateSnapshot(PdhpdlTradeDirectionModel direction, int lowerLowCount, int higherHighCount) {
+            Direction = direction;
+            LowerLowCount = lowerLowCount;
+            HigherHighCount = higherHighCount;
+        }
+
+        public PdhpdlTradeDirectionModel Direction { get; }
+        public int LowerLowCount { get; }
+        public int HigherHighCount { get; }
     }
 
     private void OnPositionClosed(PositionClosedEventArgs args) {
