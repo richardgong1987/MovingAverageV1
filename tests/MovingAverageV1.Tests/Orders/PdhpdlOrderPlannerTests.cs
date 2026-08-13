@@ -130,7 +130,7 @@ namespace MovingAverageV1.Tests.Orders {
                 RiskSafetyFactor = 1.0,
                 MinStopLossPips = minStopLossPips
             });
-            return new PdhpdlOrderPlanner(symbol, guard, stopOffsetTicks: 15, secondTargetR: 2.0, entryModel, riskPct: 1.0);
+            return new PdhpdlOrderPlanner(symbol, guard, stopOffsetTicks: 15, takeProfitR: 2.0, entryModel, riskPct: 1.0);
         }
 
         private static PdhpdlSignalModel LongSignal(double close, double low, double high) {

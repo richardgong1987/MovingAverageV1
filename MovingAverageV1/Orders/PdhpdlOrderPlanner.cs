@@ -13,16 +13,16 @@ public class PdhpdlOrderPlanner {
     private readonly IPdhpdlSymbolModel _symbolModel;
     private readonly PdhpdlRiskGuard _riskGuard;
     private readonly int _stopOffsetTicks;
-    private readonly double _secondTargetR;
+    private readonly double _takeProfitR;
     private PdhpdlEntryModel _entryModel;
     private readonly double _riskPct;
 
-    public PdhpdlOrderPlanner(IPdhpdlSymbolModel symbolModel, PdhpdlRiskGuard riskGuard, int stopOffsetTicks, double secondTargetR,
+    public PdhpdlOrderPlanner(IPdhpdlSymbolModel symbolModel, PdhpdlRiskGuard riskGuard, int stopOffsetTicks, double takeProfitR,
         PdhpdlEntryModel entryModel, double riskPct) {
         _symbolModel = symbolModel;
         _riskGuard = riskGuard;
         _stopOffsetTicks = stopOffsetTicks;
-        _secondTargetR = secondTargetR;
+        _takeProfitR = takeProfitR;
         _entryModel = entryModel;
         _riskPct = riskPct;
     }
@@ -79,19 +79,18 @@ public class PdhpdlOrderPlanner {
         // Stop base comes straight from the signal's SL price (the pattern-specific level the
         // detector chose), then a directional offset buffers it past that level.
         //
-        // takeProfit 只是交给券商的兜底价，取第二目标的 R 上限。真正的两级止盈由
-        // PdhpdlOrderExecutor 在持仓期间盯：目标价要跟着布林轨道每根 K 线重算，静态订单表达不了。
-        // 第二目标 = min(SecondTargetR×R, 对面轨道)，永远不会比这个价更远，所以挂在这里不会提前成交。
+        // 止盈是固定的 TakeProfitR×R，开仓时就定死，所以直接挂在订单上交给券商执行；
+        // 持仓期间不需要再盯。
         if (directionModel == PdhpdlTradeDirectionModel.Long) {
             stop = signalModel.SL - stopOffset;
             entry = GetEntryPrice(signalModel, stop, directionModel);
             riskPrice = entry - stop;
-            takeProfit = entry + _secondTargetR * riskPrice;
+            takeProfit = entry + _takeProfitR * riskPrice;
         } else {
             stop = signalModel.SL + stopOffset;
             entry = GetEntryPrice(signalModel, stop, directionModel);
             riskPrice = stop - entry;
-            takeProfit = entry - _secondTargetR * riskPrice;
+            takeProfit = entry - _takeProfitR * riskPrice;
         }
     }
 

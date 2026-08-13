@@ -23,7 +23,10 @@ public class PdhpdlOrderExecutor {
     private readonly PdhpdlRiskGuard _riskGuard;
     private readonly PdhpdlTradeCsvLogger _csvLogger;
     private readonly IPdhpdlSymbolModel _symbolModel;
-    private readonly PdhpdlExitConfigModel _exitConfig;
+
+    // Once protection triggers, the stop moves this many ticks past the entry price, in the
+    // profitable direction. Same tick unit as PdhpdlOrderPlanner's stop offset.
+    private readonly int _breakevenOffsetTicks;
 
     private readonly Dictionary<string, string> _pendingCsvIdsByLabel = new();
     private readonly Dictionary<string, double> _pendingEntryEquitiesByLabel = new();
@@ -36,14 +39,11 @@ public class PdhpdlOrderExecutor {
     // 反推 R 了，所以开仓时存下来。
     private readonly Dictionary<int, double> _positionRiskPrices = new();
 
-    // 已经吃过第一目标（平了半仓）的持仓，不再重复处理。
-    private readonly HashSet<int> _positionsPastFirstTarget = new();
-
     // 已经推过保护止损的持仓。券商拒单或止损落在市价另一侧时也算处理过，避免每个 tick 重试。
     private readonly HashSet<int> _positionsProtected = new();
 
     public PdhpdlOrderExecutor(Robot robot, string symbolName, string timeFrame, PdhpdlOrderPlanner planner, PdhpdlRiskGuard riskGuard,
-        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, PdhpdlExitConfigModel exitConfig) {
+        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, int breakevenOffsetTicks) {
         _robot = robot;
         _symbolName = symbolName;
         _timeFrame = timeFrame;
@@ -51,7 +51,7 @@ public class PdhpdlOrderExecutor {
         _riskGuard = riskGuard;
         _csvLogger = csvLogger;
         _symbolModel = symbolModel;
-        _exitConfig = exitConfig;
+        _breakevenOffsetTicks = breakevenOffsetTicks;
 
         if (_riskGuard.NewsBlackoutWindowCount > 0)
             _robot.Print("*****News blackout windows loaded. Count: {0}", _riskGuard.NewsBlackoutWindowCount);
@@ -67,82 +67,34 @@ public class PdhpdlOrderExecutor {
 
     public void ManageOpenPositions() {
         CloseExposureBeforeRiskWindow();
-        ManageProfitTargets();
+        ProtectPositionsAtOneR();
     }
 
-    // 两级止盈，两级目标价都是入场价加固定的 N×R。
-    private void ManageProfitTargets() {
+    // 止盈是开仓时定死的 TakeProfitR×R，已经挂在订单上由券商执行，这里不需要盯。
+    // 持仓期间唯一要做的是浮盈够 1R 时把止损推到保本位。
+    private void ProtectPositionsAtOneR() {
         foreach (Position position in _robot.Positions.Where(IsStrategyPosition).ToArray())
-            ManageProfitTargets(position);
+            ProtectAtOneR(position);
     }
 
-    private void ManageProfitTargets(Position position) {
+    private void ProtectAtOneR(Position position) {
+        if (_positionsProtected.Contains(position.Id))
+            return;
+
         if (!_positionRiskPrices.TryGetValue(position.Id, out double riskPrice) || riskPrice <= 0.0)
             return;
 
         bool isLong = position.TradeType == TradeType.Buy;
-        double price = position.CurrentPrice;
+        double trigger = isLong ? position.EntryPrice + riskPrice : position.EntryPrice - riskPrice;
 
-        ProtectAtOneR(position, isLong, price, riskPrice);
+        if (!HasReached(isLong, position.CurrentPrice, trigger))
+            return;
 
-        if (!_positionsPastFirstTarget.Contains(position.Id)) {
-            double firstTarget = ResolveTarget(isLong, position.EntryPrice, riskPrice, _exitConfig.FirstTargetR);
-
-            if (!HasReached(isLong, price, firstTarget))
-                return;
-
-            // 先记账再动手：券商拒单时也不要每个 tick 重试一次，日志里会留下失败原因。
-            _positionsPastFirstTarget.Add(position.Id);
-            ClosePartial(position, firstTarget);
-        }
-
-        // 价格一次跳过两级时，同一轮里接着平掉剩下的。
-        double secondTarget = ResolveTarget(isLong, position.EntryPrice, riskPrice, _exitConfig.SecondTargetR);
-
-        if (HasReached(isLong, price, secondTarget))
-            CloseRemainder(position, secondTarget);
-    }
-
-    private static double ResolveTarget(bool isLong, double entryPrice, double riskPrice, double targetR) {
-        return isLong ? entryPrice + targetR * riskPrice : entryPrice - targetR * riskPrice;
+        MoveStopToProtection(position, isLong);
     }
 
     private static bool HasReached(bool isLong, double price, double targetPrice) {
         return isLong ? price >= targetPrice : price <= targetPrice;
-    }
-
-    private void ClosePartial(Position position, double targetPrice) {
-        double halfVolume = _symbolModel.NormalizeVolumeInUnits(position.VolumeInUnits / 2.0);
-
-        // 半仓或剩下那半低于券商最小手数就不拆了：整笔留给第二目标。
-        if (halfVolume < _symbolModel.VolumeInUnitsMin || position.VolumeInUnits - halfVolume < _symbolModel.VolumeInUnitsMin) {
-            _robot.Print("*****Partial close skipped | Volume {0} cannot be split. Position: {1}", position.VolumeInUnits, position.Id);
-            return;
-        }
-
-        TradeResult result = _robot.ClosePosition(position, halfVolume);
-
-        if (!result.IsSuccessful) {
-            _robot.Print("*****Partial close failed | Position: {0}, Error: {1}", position.Id, result.Error);
-            return;
-        }
-
-        _robot.Print("*****First target hit | Position: {0}, Target: {1}, ClosedVolume: {2}", position.Id, targetPrice, halfVolume);
-        LogPartialClose(position, halfVolume);
-    }
-
-    // 浮盈够 1R 就把这笔的风险清掉，不再等第一目标平半仓——第一目标可能是中轨，比 1R 远得多，
-    // 价格在那之前回撤的话保护就白等了。
-    private void ProtectAtOneR(Position position, bool isLong, double price, double riskPrice) {
-        if (_positionsProtected.Contains(position.Id))
-            return;
-
-        double trigger = isLong ? position.EntryPrice + riskPrice : position.EntryPrice - riskPrice;
-
-        if (!HasReached(isLong, price, trigger))
-            return;
-
-        MoveStopToProtection(position, isLong);
     }
 
     // The position must not turn back into a loss, so the stop moves to the entry price plus a
@@ -152,7 +104,7 @@ public class PdhpdlOrderExecutor {
         if (!_positionsProtected.Add(position.Id))
             return;
 
-        double offset = _symbolModel.TickSize * _exitConfig.BreakevenOffsetTicks;
+        double offset = _symbolModel.TickSize * _breakevenOffsetTicks;
         double protectiveStop = isLong ? position.EntryPrice + offset : position.EntryPrice - offset;
 
         if (!IsStopImprovement(position, isLong, protectiveStop))
@@ -182,31 +134,6 @@ public class PdhpdlOrderExecutor {
             return true;
 
         return isLong ? protectiveStop > position.StopLoss.Value : protectiveStop < position.StopLoss.Value;
-    }
-
-    // Positions.Closed 只在整笔平掉时触发，部分平仓不会进 OnPositionClosed，
-    // 所以这半仓的盈亏要在这里单独写一行，否则 CSV 的合计会少掉这一截。
-    private void LogPartialClose(Position position, double closedVolumeInUnits) {
-        HistoricalTrade partialTrade = GetLastHistoricalTrade(position.Id);
-        double closePrice = partialTrade?.ClosingPrice ?? 0.0;
-        double profitLoss = partialTrade?.NetProfit ?? 0.0;
-
-        string recordId = _csvLogger.AppendPartialClose(position, GetPositionCsvId(position), _symbolName, _timeFrame, _robot.Server.Time,
-            closePrice, closedVolumeInUnits, profitLoss, _robot.Account.Equity);
-
-        if (!string.IsNullOrWhiteSpace(recordId))
-            _robot.Print("*****CSV partial close record added. Id: {0}, ProfitLoss: {1}", recordId, profitLoss);
-    }
-
-    private void CloseRemainder(Position position, double targetPrice) {
-        TradeResult result = _robot.ClosePosition(position);
-
-        if (!result.IsSuccessful) {
-            _robot.Print("*****Second target close failed | Position: {0}, Error: {1}", position.Id, result.Error);
-            return;
-        }
-
-        _robot.Print("*****Second target hit | Position: {0}, Target: {1}", position.Id, targetPrice);
     }
 
     public bool ExecuteIfSignal(PdhpdlSignalModel signalModel) {
@@ -411,7 +338,6 @@ public class PdhpdlOrderExecutor {
         _positionCsvIds.Remove(args.Position.Id);
         _positionEntryEquities.Remove(args.Position.Id);
         _positionRiskPrices.Remove(args.Position.Id);
-        _positionsPastFirstTarget.Remove(args.Position.Id);
         _positionsProtected.Remove(args.Position.Id);
 
         if (!string.IsNullOrWhiteSpace(closeRecordId))

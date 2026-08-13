@@ -139,41 +139,6 @@ public class PdhpdlTradeCsvLogger {
         return record.Id;
     }
 
-    // 第一目标平半仓。Positions.Closed 只在整笔平掉时触发，所以这半仓不会走 AppendClose，
-    // 盈亏必须单独记一行，否则 CSV 的合计会漏掉这一截。
-    public string AppendPartialClose(Position position, string csvId, string symbolName, string timeFrame, DateTime serverTime,
-        double closePrice, double closedVolumeInUnits, double profitLoss, double closeAccountEquity) {
-        if (position == null)
-            return "";
-
-        var record = new PdhpdlTradeCsvRecordModel {
-            Id = $"{csvId}-TP1",
-            KeyLevel = "",
-            Signal = "partial",
-            EntryMode = "",
-            Comment = profitLoss >= 0.0 ? "盈利" : "亏损",
-            Symbol = symbolName,
-            TimeFrame = timeFrame,
-            EntryAccountEquity = 0.0,
-            CloseAccountEquity = closeAccountEquity,
-            EntryTime = position.EntryTime,
-            EntryPrice = position.EntryPrice,
-            ClosePrice = closePrice,
-            StopPrice = 0.0,
-            TakeProfitPrice = 0.0,
-            RiskPrice = 0.0,
-            VolumeInUnits = closedVolumeInUnits,
-            CloseReason = "TP1",
-            ProfitLoss = profitLoss,
-            CloseTime = serverTime.ToString("yyyy-MM-dd HH:mm:ss"),
-            PositionId = position.Id.ToString(),
-            DealId = GetCloseDealId(position)
-        };
-
-        Append(record);
-        return record.Id;
-    }
-
     public void Append(PdhpdlTradeCsvRecordModel recordModel) {
         if (recordModel == null)
             return;
