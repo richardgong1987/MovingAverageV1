@@ -1,0 +1,67 @@
+// © richardgong1988 — 26年信号维度 (single library, all 7 patterns).
+
+//@version=6
+library("HanJinSignals26", overlay = true)
+
+// ─── Internal geometry helpers (not exported) ─────────────────────
+wickFracs() =>
+    rng = high - low
+    up  = rng > 0 ? (high - math.max(open, close)) / rng : na
+    lo  = rng > 0 ? (math.min(open, close) - low)  / rng : na
+    [up, lo]
+
+bodyFrac() =>
+    rng = high - low
+    rng > 0 ? math.abs(close - open) / rng : na
+
+bodyDirAt(series int off) =>
+    close[off] > open[off] ? 1 : close[off] < open[off] ? -1 : 0
+
+contains(series int outer, series int inner) =>
+    outerBodyTop = math.max(open[outer], close[outer])
+    outerBodyBottom = math.min(open[outer], close[outer])
+    innerBodyTop = math.max(open[inner], close[inner])
+    innerBodyBottom = math.min(open[inner], close[inner])
+    high[outer] > high[inner] and low[outer] < low[inner] and outerBodyTop >= innerBodyTop and outerBodyBottom <= innerBodyBottom
+
+// ─── ① Pinbar ─────────────────────────────────────────────────────
+export pinbar(simple float longFrac = 0.667, simple float shortFrac = 0.2, simple bool strict = true) =>
+    [up, lo] = wickFracs()
+    bull = not na(lo) and lo >= longFrac and (not strict or up <= shortFrac)
+    bear = not na(up) and up >= longFrac and (not strict or lo <= shortFrac)
+    bull ? "BUY" : bear ? "SELL" : na
+
+// ─── ② Engulfing 吞没──────────────────────────────────────────────────
+export engulf() =>
+    pBh = math.max(open[1], close[1])
+    pBl = math.min(open[1], close[1])
+    cBh = math.max(open, close)
+    cBl = math.min(open, close)
+    ok  = high >= high[1] and low <= low[1] and cBh >= pBh and cBl <= pBl
+    dir = bodyDirAt(0)
+    ok and dir > 0 ? "BUY" : ok and dir < 0 ? "SELL" : na
+
+// ─── ③ Fractal — returns [topSide, botSide] 顶底分型───────────────────────
+// Strict structural fractal (NOT a pivot): middle candle must dominate both
+// neighbours on BOTH the high line AND the low line — inverted-V / V on all 4.
+//   bar[2]=left  bar[1]=middle  bar[0]=right confirmation
+export fractal() =>
+    top = high[1] > high[2] and high[1] > high[0] and low[1] > low[2] and low[1] > low[0]
+    bot = low[1] < low[2] and low[1] < low[0] and high[1] < high[2] and high[1] < high[0]
+    [top ? "SELL" : na, bot ? "BUY" : na]
+
+// ─── ④ Harami breakout — returns [single, legacy double] ────────────
+// Bar [2] contains inside bar [1]; bar [0] must close beyond [1].
+// Body direction is irrelevant. The legacy double output mirrors single.
+export harami() =>
+    hasInsideBar = contains(2, 1)
+    breakoutSide = close > high[1] ? "BUY" : close < low[1] ? "SELL" : na
+    side = hasInsideBar ? breakoutSide : na
+    [side, side]
+
+// ─── ⑤ Big Body 大实体K线───────────────────────────────────────────────────
+export bigbody(simple float minFrac = 0.7) =>
+    bf  = bodyFrac()
+    dir = bodyDirAt(0)
+    ok  = not na(bf) and bf >= minFrac
+    ok and dir > 0 ? "BUY" : ok and dir < 0 ? "SELL" : na
