@@ -72,10 +72,13 @@ public class MovingAverageV1 : Robot {
     private PdhpdlOrderExecutor _orderExecutor;
     private PdhpdlTradeCsvLogger _csvLogger;
     private Atr14Series _atr14;
+    private MarketStructure _marketStructure;
 
     protected override void OnStart() {
         LaunchDebug();
         DrawDualRmaLines();
+        _marketStructure = new MarketStructure(Chart, Bars);
+        _marketStructure.Update();
         _atr14 = new Atr14Series(Indicators, Bars);
         _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries);
         _signalMarkers = new PdhpdlSignalMarkers(Chart, Symbol.TickSize);
@@ -146,6 +149,7 @@ public class MovingAverageV1 : Robot {
 
     protected override void OnBar() {
         _movingAverageLines?.Draw();
+        _marketStructure?.Update();
         _orderExecutor?.ManageOpenPositions();
         // 先撤过期挂单再看新信号：让作废的挂单不再占住「本品种已有挂单」这个名额。
         _orderExecutor?.CancelExpiredPendingOrders(Bars.Count - 2);
