@@ -24,6 +24,9 @@ public class PdhpdlOrderExecutor {
     private readonly PdhpdlTradeCsvLogger _csvLogger;
     private readonly IPdhpdlSymbolModel _symbolModel;
 
+    // 浮盈达到这么多个 R 就把止损推到保本位。
+    private readonly double _breakevenTriggerR;
+
     // Once protection triggers, the stop moves this many ticks past the entry price, in the
     // profitable direction. Same tick unit as PdhpdlOrderPlanner's stop offset.
     private readonly int _breakevenOffsetTicks;
@@ -43,7 +46,7 @@ public class PdhpdlOrderExecutor {
     private readonly HashSet<int> _positionsProtected = new();
 
     public PdhpdlOrderExecutor(Robot robot, string symbolName, string timeFrame, PdhpdlOrderPlanner planner, PdhpdlRiskGuard riskGuard,
-        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, int breakevenOffsetTicks) {
+        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, double breakevenTriggerR, int breakevenOffsetTicks) {
         _robot = robot;
         _symbolName = symbolName;
         _timeFrame = timeFrame;
@@ -51,6 +54,7 @@ public class PdhpdlOrderExecutor {
         _riskGuard = riskGuard;
         _csvLogger = csvLogger;
         _symbolModel = symbolModel;
+        _breakevenTriggerR = breakevenTriggerR;
         _breakevenOffsetTicks = breakevenOffsetTicks;
 
         if (_riskGuard.NewsBlackoutWindowCount > 0)
@@ -67,17 +71,17 @@ public class PdhpdlOrderExecutor {
 
     public void ManageOpenPositions() {
         CloseExposureBeforeRiskWindow();
-        ProtectPositionsAtOneR();
+        ApplyBreakevenProtection();
     }
 
     // 止盈是开仓时定死的 TakeProfitR×R，已经挂在订单上由券商执行，这里不需要盯。
-    // 持仓期间唯一要做的是浮盈够 1R 时把止损推到保本位。
-    private void ProtectPositionsAtOneR() {
+    // 持仓期间唯一要做的是浮盈达到 BreakevenTriggerR 时把止损推到保本位。
+    private void ApplyBreakevenProtection() {
         foreach (Position position in _robot.Positions.Where(IsStrategyPosition).ToArray())
-            ProtectAtOneR(position);
+            ApplyBreakevenProtection(position);
     }
 
-    private void ProtectAtOneR(Position position) {
+    private void ApplyBreakevenProtection(Position position) {
         if (_positionsProtected.Contains(position.Id))
             return;
 
@@ -85,7 +89,8 @@ public class PdhpdlOrderExecutor {
             return;
 
         bool isLong = position.TradeType == TradeType.Buy;
-        double trigger = isLong ? position.EntryPrice + riskPrice : position.EntryPrice - riskPrice;
+        double profitDistance = _breakevenTriggerR * riskPrice;
+        double trigger = isLong ? position.EntryPrice + profitDistance : position.EntryPrice - profitDistance;
 
         if (!HasReached(isLong, position.CurrentPrice, trigger))
             return;

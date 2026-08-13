@@ -25,6 +25,9 @@ public class MovingAverageV1 : Robot {
     [Parameter("止盈目标", DefaultValue = 2.0, MinValue = 0.5, MaxValue = 20.0, Step = 0.1, Group = "风控配置")]
     public double TakeProfitR { get; set; }
 
+    [Parameter("保护止损触发R", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 20.0, Step = 0.1, Group = "风控配置")]
+    public double BreakevenTriggerR { get; set; }
+
     [Parameter("保护止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 1000, Group = "风控配置")]
     public int BreakevenOffsetTicks { get; set; }
 
@@ -87,7 +90,7 @@ public class MovingAverageV1 : Robot {
         var symbolModel = new CAlgoSymbolModel(Symbol);
         var planner = new PdhpdlOrderPlanner(symbolModel, riskGuard, StopOffsetTicks, TakeProfitR, EntryModel, RiskPct);
         _orderExecutor = new PdhpdlOrderExecutor(this, SymbolName, Bars.TimeFrame.ToString(), planner, riskGuard, _csvLogger, symbolModel,
-            BreakevenOffsetTicks);
+            BreakevenTriggerR, BreakevenOffsetTicks);
 
         Print("*****Dragon Oscillator Reversal started.");
     }
