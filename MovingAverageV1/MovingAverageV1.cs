@@ -5,7 +5,7 @@ using cAlgo.API;
 
 namespace cAlgo.Robots;
 
-[Robot(AccessRights = AccessRights.None, AddIndicators = true)]
+[Robot(TimeZone = TimeZones.TokyoStandardTime, AccessRights = AccessRights.FullAccess, AddIndicators = true)]
 public class MovingAverageV1 : Robot {
     [Parameter("策略模式", DefaultValue = StrategyModel.All)]
     public StrategyModel Strategy { get; set; }
