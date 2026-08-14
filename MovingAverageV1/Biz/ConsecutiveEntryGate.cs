@@ -3,12 +3,12 @@ namespace cAlgo.Robots;
 // 连续同向入场的闸门。
 //
 // 换方向后的第一笔不受限制。同方向再开一笔，要同时满足两件事：
-//   1. MarketStructure 最后标出的结构点站在自己这一边 —— 作空要红色标记（LL 或 LH），
-//      作多要绿色标记（HH 或 HL）；
+//   1. MarketStructure 最后标出的结构点是「趋势又走远了一步」那一种 —— 作空只认 LL，
+//      作多只认 HH。同为红色的 LH 和同为绿色的 HL 都只是回调里的次级结构点，不放行；
 //   2. 这个结构点是上一笔同向入场之后才出现的。
 //
 // 第 2 条让结构点变成一次性的令牌：一个 LL 放行一笔作空，用掉就作废，第 3 笔要再等一个新的
-// 红色标记。只看颜色是不够的 —— 颜色不变的那段时间里每个信号都会被放行，等于没有闸门。
+// LL。只看种类是不够的 —— 它不变的那段时间里每个信号都会被放行，等于没有闸门。
 // 判断方式是比较 MarketStructure 的 PivotCount：它只增不减，比上一笔入场时记下的值大，
 // 就说明这中间确实又新确认了一个结构点。
 //
@@ -39,9 +39,9 @@ public class ConsecutiveEntryGate {
 
     private static bool IsPivotAligned(PdhpdlTradeDirectionModel direction, MarketStructurePivotModel latestPivot) {
         if (direction == PdhpdlTradeDirectionModel.Short) {
-            return latestPivot == MarketStructurePivotModel.LowerLow || latestPivot == MarketStructurePivotModel.LowerHigh;
+            return latestPivot == MarketStructurePivotModel.LowerLow;
         }
 
-        return latestPivot == MarketStructurePivotModel.HigherHigh || latestPivot == MarketStructurePivotModel.HigherLow;
+        return latestPivot == MarketStructurePivotModel.HigherHigh;
     }
 }
