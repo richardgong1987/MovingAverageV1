@@ -2,7 +2,9 @@
 
 set -euo pipefail
 
-REPO_ROOT=/Users/chenwanli/cAlgo/Sources/Robots/MovingAverageV1
+# Derived from this script's own location (repo/scripts/backtester/), so double-clicking the
+# file works on any machine regardless of the shell's working directory.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 SOLUTION="$REPO_ROOT/MovingAverageV1.sln"
 ROBOT_SOURCE="$REPO_ROOT/MovingAverageV1/MovingAverageV1.cs"
 
