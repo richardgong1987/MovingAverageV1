@@ -33,8 +33,9 @@ public class MainBiz {
         if (!MatchesShortPattern(signalModel, scanResult, current, previous, earlier))
             return false;
 
-        // 连续第 2 笔以上的作空，必须等 MarketStructure 又新标出一个 LL。
-        return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Short, signalModel.LowerLowCount, signalModel.HigherHighCount);
+        // 连续第 2 笔以上的作空，MarketStructure 最后标出的必须是红色标记（LL 或 LH），
+        // 而且要是上一笔作空之后才新出的那一个。
+        return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Short, signalModel.LatestPivot, signalModel.PivotCount);
     }
 
     private static bool MatchesShortPattern(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
@@ -82,8 +83,9 @@ public class MainBiz {
         if (!MatchesLongPattern(signalModel, scanResult, current, previous, earlier))
             return false;
 
-        // 连续第 2 笔以上的作多，必须等 MarketStructure 又新标出一个 HH。
-        return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Long, signalModel.LowerLowCount, signalModel.HigherHighCount);
+        // 连续第 2 笔以上的作多，MarketStructure 最后标出的必须是绿色标记（HH 或 HL），
+        // 而且要是上一笔作多之后才新出的那一个。
+        return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Long, signalModel.LatestPivot, signalModel.PivotCount);
     }
 
     private static bool MatchesLongPattern(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,

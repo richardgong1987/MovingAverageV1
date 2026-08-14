@@ -6,8 +6,8 @@ using cAlgo.API.Internals;
 namespace cAlgo.Robots;
 
 // C# port of the "Market Structure HH, HL, LH and LL" Pine indicator
-// (pine-script/lib/Market-Structure-HH-HL-LH-and-LL.pine). Chart-only: it draws the zigzag
-// and its swing labels and feeds nothing into the strategy.
+// (pine-script/lib/Market-Structure-HH-HL-LH-and-LL.pine). It draws the zigzag and its swing
+// labels; the only thing the strategy reads from it is LatestPivot.
 //
 // The swing engine is a breakout zigzag, not a fractal one:
 //     toUp   = this bar's high is the highest of the last ZigZagLength bars
@@ -61,11 +61,15 @@ public class MarketStructure {
     private double _previousLow = double.NaN;
     private int _latestLowIndex = -1;
 
-    // 图上每标出一个 LL / HH 就 +1，只增不减。调用方靠「和上次记下的值比有没有变大」来判断
-    // 这中间有没有新出现一个结构点，见 ConsecutiveEntryGate。
-    public int LowerLowCount { get; private set; }
+    // 最近一次新确认的结构点，也就是图上最后画出来的那个标签：翻转向上确认的是低点（LL / HL），
+    // 翻转向下确认的是高点（HH / LH）。DrawSwing 每次翻转会把两个标签都重画一遍，但只有这一个是新的。
+    // 见 ConsecutiveEntryGate：连续同向入场靠它判断结构是否还站在自己这一边。
+    public MarketStructurePivotModel LatestPivot { get; private set; }
 
-    public int HigherHighCount { get; private set; }
+    // 到目前为止一共新确认过多少个结构点，只增不减 —— 相当于 LatestPivot 的编号。
+    // ConsecutiveEntryGate 靠「比上一笔入场时记下的值大」来确认这是新出的那一个：
+    // 同一个结构点只能放行一笔，光看 LatestPivot 的颜色区分不出新旧。
+    public int PivotCount { get; private set; }
 
     public MarketStructure(Chart chart, Bars bars) {
         _chart = chart;
@@ -107,15 +111,15 @@ public class MarketStructure {
         // swing is ever recorded there.
         if (_hasPreviousTrend && trend != previousTrend) {
             // Flipping up confirms the low that ended the decline; flipping down confirms the high.
-            // 计数只在这里做，不在 DrawSwing 里：每次翻转都会把两边的标签重画一遍，在那里数会翻倍。
-            // 判断式和 DrawSwing 的 isLowerLow / isHigherHigh 一致，所以计数和图上的标签永远同步。
+            // LatestPivot 只在这里记，不在 DrawSwing 里：那边每次翻转都会把两边的标签重画一遍，
+            // 在那里记会把没动的那一侧也当成新的。判断式和 DrawSwing 的 isLowerLow / isHigherHigh
+            // 一致，所以它和图上标签的文字、颜色永远对得上。
             if (trend == 1) {
                 _previousLow = _latestLow;
                 _latestLow = swingLow;
                 _latestLowIndex = swingLowIndex;
 
-                if (_latestLow < _previousLow)
-                    LowerLowCount++;
+                LatestPivot = _latestLow < _previousLow ? MarketStructurePivotModel.LowerLow : MarketStructurePivotModel.HigherLow;
             }
 
             if (trend == -1) {
@@ -123,9 +127,11 @@ public class MarketStructure {
                 _latestHigh = swingHigh;
                 _latestHighIndex = swingHighIndex;
 
-                if (_latestHigh > _previousHigh)
-                    HigherHighCount++;
+                LatestPivot = _latestHigh > _previousHigh ? MarketStructurePivotModel.HigherHigh : MarketStructurePivotModel.LowerHigh;
             }
+
+            // 一次翻转只确认一个结构点，所以这里加一次就够。
+            PivotCount++;
 
             DrawSwing(trend);
         }

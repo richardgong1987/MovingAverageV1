@@ -43,8 +43,8 @@ public class PdhpdlSignalDetector {
         signalModel.High = current.High;
         signalModel.Low = current.Low;
 
-        signalModel.LowerLowCount = _marketStructure.LowerLowCount;
-        signalModel.HigherHighCount = _marketStructure.HigherHighCount;
+        signalModel.LatestPivot = _marketStructure.LatestPivot;
+        signalModel.PivotCount = _marketStructure.PivotCount;
 
         FillRmaData(signalModel);
         MainBiz.Evaluate(signalModel, current, previous, earlier, _entryGate);

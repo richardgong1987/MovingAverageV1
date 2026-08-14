@@ -36,7 +36,7 @@ public class PdhpdlOrderExecutor {
     private readonly Dictionary<string, double> _pendingEntryEquitiesByLabel = new();
     private readonly Dictionary<string, double> _pendingRiskPricesByLabel = new();
     private readonly Dictionary<int, int> _pendingOrderBarIndexById = new();
-    // 下单时先按 label 记下方向和当时的 LL/HH 计数，等仓位真的开出来（OnPositionOpened）再交给
+    // 下单时先按 label 记下方向和当时的结构点编号，等仓位真的开出来（OnPositionOpened）再交给
     // 闸门。挂单没成交就撤掉的那些，永远不会走到记账这一步。
     private readonly Dictionary<string, EntryGateSnapshot> _pendingGateSnapshotsByLabel = new();
 
@@ -179,8 +179,7 @@ public class PdhpdlOrderExecutor {
         planModel.SignalBarIndex = signalModel.BarIndex;
 
         // 快照必须在下单之前放好：市价单的 Positions.Opened 可能在 SubmitOrder 里就回调了。
-        _pendingGateSnapshotsByLabel[planModel.Label] =
-            new EntryGateSnapshot(planModel.DirectionModel, signalModel.LowerLowCount, signalModel.HigherHighCount);
+        _pendingGateSnapshotsByLabel[planModel.Label] = new EntryGateSnapshot(planModel.DirectionModel, signalModel.PivotCount);
 
         if (ExecutePlan(planModel))
             return true;
@@ -334,28 +333,27 @@ public class PdhpdlOrderExecutor {
         RecordEntryForGate(args.Position.Label);
     }
 
-    // 仓位真正开出来才算一笔同向入场。用的是下单那一刻的 LL/HH 计数，也就是闸门放行时比对过的
-    // 那个基准，这样「一个 LL 放行一笔」才对得上。
+    // 仓位真正开出来才算一笔同向入场。用的是下单那一刻的结构点编号，也就是闸门放行时比对过的
+    // 那个基准，这样「一个结构点放行一笔」才对得上：挂单成交时可能又新出了几个结构点，
+    // 拿成交那一刻的编号记账会把它们一并当成已经用掉。
     private void RecordEntryForGate(string label) {
         if (string.IsNullOrWhiteSpace(label) || !_pendingGateSnapshotsByLabel.TryGetValue(label, out EntryGateSnapshot snapshot))
             return;
 
         _pendingGateSnapshotsByLabel.Remove(label);
-        _entryGate.RecordEntry(snapshot.Direction, snapshot.LowerLowCount, snapshot.HigherHighCount);
-        _robot.Print("*****Entry recorded | Side: {0}, ConsecutiveCount: {1}, LL: {2}, HH: {3}", snapshot.Direction,
-            _entryGate.ConsecutiveCount, snapshot.LowerLowCount, snapshot.HigherHighCount);
+        _entryGate.RecordEntry(snapshot.Direction, snapshot.PivotCount);
+        _robot.Print("*****Entry recorded | Side: {0}, ConsecutiveCount: {1}, PivotCount: {2}", snapshot.Direction,
+            _entryGate.ConsecutiveCount, snapshot.PivotCount);
     }
 
     private readonly struct EntryGateSnapshot {
-        public EntryGateSnapshot(PdhpdlTradeDirectionModel direction, int lowerLowCount, int higherHighCount) {
+        public EntryGateSnapshot(PdhpdlTradeDirectionModel direction, int pivotCount) {
             Direction = direction;
-            LowerLowCount = lowerLowCount;
-            HigherHighCount = higherHighCount;
+            PivotCount = pivotCount;
         }
 
         public PdhpdlTradeDirectionModel Direction { get; }
-        public int LowerLowCount { get; }
-        public int HigherHighCount { get; }
+        public int PivotCount { get; }
     }
 
     private void OnPositionClosed(PositionClosedEventArgs args) {
