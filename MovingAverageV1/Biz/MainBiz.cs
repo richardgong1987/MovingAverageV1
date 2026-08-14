@@ -15,6 +15,8 @@ public class MainBiz {
         if (!signalModel.HasRmaData)
             return false;
 
+        if (!IsMaDistanceSatisfied(signalModel))
+            return false;
 
         RmaPositionModel rmaPosition = RmaUtils.GetFastToSlowPosition(signalModel.FastRma, signalModel.SlowRma);
 
@@ -61,6 +63,9 @@ public class MainBiz {
         if (!signalModel.HasRmaData)
             return false;
 
+        if (!IsMaDistanceSatisfied(signalModel))
+            return false;
+
         RmaPositionModel rmaPosition = RmaUtils.GetFastToSlowPosition(signalModel.FastRma, signalModel.SlowRma);
 
         /**
@@ -100,6 +105,19 @@ public class MainBiz {
         }
 
         return false;
+    }
+
+    // 快慢线贴在一起时行情多半在震荡，形态信号在那里的胜率很差。用 ATR 归一化后的间距
+    // MaDistance = |FastRma - SlowRma| / ATR 必须大于 X 系数才放行。
+    // X = 0 表示这道闸门关闭；此时 ATR 缺失也不该把所有交易挡掉。
+    private static bool IsMaDistanceSatisfied(PdhpdlSignalModel signalModel) {
+        if (signalModel.MinMaDistance <= 0.0)
+            return true;
+
+        if (double.IsNaN(signalModel.MaDistance))
+            return false;
+
+        return signalModel.MaDistance > signalModel.MinMaDistance;
     }
 
     // 信号必须长在快线上：构成这个形态的 K 线里，至少有一根把快线夹在自己的高低点之间（影线算数）。
