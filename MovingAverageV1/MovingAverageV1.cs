@@ -64,6 +64,10 @@ public class MovingAverageV1 : Robot {
     [Parameter("均线周期(分钟)", DefaultValue = 120, MinValue = 1, Group = "均线")]
     public int MaTimeFrameMinutes { get; set; }
 
+    // MaDistance = |快线 - 慢线| / ATR14 必须大于这个系数才开仓，两边都取均线周期上的同一根已收 K 线。
+    [Parameter("X系数 (0=关闭)", DefaultValue = 0.0, MinValue = 0.0, Step = 0.1, Group = "均线")]
+    public double X { get; set; }
+
     private DualRmaSeries _rmaSeries;
     private DualRmaLines _movingAverageLines;
 
@@ -71,7 +75,11 @@ public class MovingAverageV1 : Robot {
     private PdhpdlSignalMarkers _signalMarkers;
     private PdhpdlOrderExecutor _orderExecutor;
     private PdhpdlTradeCsvLogger _csvLogger;
+    // 图表周期的 ATR，只服务 IsBigK（比较图表 K 线自身的振幅）。
     private Atr14Series _atr14;
+
+    // 均线来源周期（默认 120m）的 ATR，只服务 MaDistance。两者周期不同，不能共用一个实例。
+    private Atr14Series _rmaSourceAtr14;
     private MarketStructure _marketStructure;
 
     protected override void OnStart() {
@@ -80,10 +88,11 @@ public class MovingAverageV1 : Robot {
         _marketStructure = new MarketStructure(Chart, Bars);
         _marketStructure.Update();
         _atr14 = new Atr14Series(Indicators, Bars);
+        _rmaSourceAtr14 = new Atr14Series(Indicators, _rmaSeries.SourceBars);
 
         // 同一个闸门实例两边共用：detector 侧读它决定放不放行，executor 侧在仓位真的开出来时写它。
         var entryGate = new ConsecutiveEntryGate();
-        _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries, _marketStructure, entryGate);
+        _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries, _rmaSourceAtr14, _marketStructure, entryGate, X);
         _signalMarkers = new PdhpdlSignalMarkers(Chart, Symbol.TickSize);
 
         _csvLogger = new PdhpdlTradeCsvLogger(ResetTradeLogOnStart, ResolveReportsDirectory(), FileName);

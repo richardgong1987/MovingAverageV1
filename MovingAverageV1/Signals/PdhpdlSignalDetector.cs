@@ -9,15 +9,19 @@ namespace cAlgo.Robots;
 public class PdhpdlSignalDetector {
     private readonly Bars _chartBars;
     private readonly DualRmaSeries _rmaSeries;
+    private readonly Atr14Series _rmaSourceAtr14;
     private readonly MarketStructure _marketStructure;
     private readonly ConsecutiveEntryGate _entryGate;
+    private readonly double _minMaDistance;
 
-    public PdhpdlSignalDetector(Bars chartBars, DualRmaSeries rmaSeries, MarketStructure marketStructure,
-        ConsecutiveEntryGate entryGate) {
+    public PdhpdlSignalDetector(Bars chartBars, DualRmaSeries rmaSeries, Atr14Series rmaSourceAtr14, MarketStructure marketStructure,
+        ConsecutiveEntryGate entryGate, double minMaDistance) {
         _chartBars = chartBars;
         _rmaSeries = rmaSeries;
+        _rmaSourceAtr14 = rmaSourceAtr14;
         _marketStructure = marketStructure;
         _entryGate = entryGate;
+        _minMaDistance = minMaDistance;
     }
 
     public PdhpdlSignalModel DetectOnClosedBar(StrategyModel strategy) {
@@ -57,6 +61,8 @@ public class PdhpdlSignalDetector {
     private void FillRmaData(PdhpdlSignalModel signalModel) {
         signalModel.FastRma = double.NaN;
         signalModel.SlowRma = double.NaN;
+        signalModel.MaDistance = double.NaN;
+        signalModel.MinMaDistance = _minMaDistance;
 
         if (!_rmaSeries.TryGetLastConfirmedValues(out DateTime sourceBarTime, out double fastRma, out double slowRma))
             return;
@@ -65,5 +71,15 @@ public class PdhpdlSignalDetector {
         signalModel.RmaSourceBarTime = sourceBarTime;
         signalModel.FastRma = fastRma;
         signalModel.SlowRma = slowRma;
+        signalModel.MaDistance = CalculateMaDistance(fastRma, slowRma);
+    }
+
+    // ATR 必须取均线来源周期上的同一根已收 K 线：拿图表周期的 ATR 去除以高周期均线的间距，
+    // 分子分母量纲不同，算出来的倍数没有意义。
+    private double CalculateMaDistance(double fastRma, double slowRma) {
+        if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.ConfirmedIndex, out double atr))
+            return double.NaN;
+
+        return Math.Abs(fastRma - slowRma) / atr;
     }
 }
