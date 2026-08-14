@@ -77,7 +77,6 @@ public class PdhpdlOrderExecutor {
     }
 
     public void ManageOpenPositions() {
-        CloseExposureBeforeRiskWindow();
         ApplyBreakevenProtection();
     }
 
