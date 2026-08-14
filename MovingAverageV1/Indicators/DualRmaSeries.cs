@@ -28,12 +28,16 @@ public class DualRmaSeries {
 
     public IndicatorDataSeries SlowValues => _slowMa.Result;
 
+    // Last fully closed source bar. Anything read alongside the RMA values (ATR, for instance)
+    // must use this same index, otherwise the two numbers describe different bars.
+    public int ConfirmedIndex => SourceBars.Count - 2;
+
     public bool TryGetLastConfirmedValues(out DateTime sourceBarTime, out double fastRma, out double slowRma) {
         sourceBarTime = DateTime.MinValue;
         fastRma = double.NaN;
         slowRma = double.NaN;
 
-        int confirmedIndex = SourceBars.Count - 2;
+        int confirmedIndex = ConfirmedIndex;
         if (confirmedIndex < 0)
             return false;
 
