@@ -34,15 +34,6 @@ public class MovingAverageV1 : Robot {
     [Parameter("回撤开仓模式", DefaultValue = PdhpdlEntryModel.Close, Group = "风控配置")]
     public PdhpdlEntryModel EntryModel { get; set; }
 
-    [Parameter("周六强制平仓小时（日本时间）", DefaultValue = 5, MinValue = 0, MaxValue = 23, Group = "基本面设置")]
-    public int SaturdayForceCloseHour { get; set; }
-
-    [Parameter("周六强制平仓分钟（日本时间）", DefaultValue = 30, MinValue = 0, MaxValue = 59, Group = "基本面设置")]
-    public int SaturdayForceCloseMinute { get; set; }
-
-    [Parameter("五星数据空仓时间段", DefaultValue = "", Group = "基本面设置")]
-    public string NewsBlackoutWindows { get; set; }
-
     [Parameter("启动时清空交易记录CSV", DefaultValue = false, Group = "开发调试")]
     public bool ResetTradeLogOnStart { get; set; }
 
@@ -146,10 +137,7 @@ public class MovingAverageV1 : Robot {
     private PdhpdlRiskGuardConfigModel BuildRiskGuardConfig() {
         return new PdhpdlRiskGuardConfigModel {
             RiskSafetyFactor = RiskSafetyFactor,
-            MinStopLossPips = MinStopLossPips,
-            SaturdayForceCloseHour = SaturdayForceCloseHour,
-            SaturdayForceCloseMinute = SaturdayForceCloseMinute,
-            NewsBlackoutWindows = NewsBlackoutWindows
+            MinStopLossPips = MinStopLossPips
         };
     }
 

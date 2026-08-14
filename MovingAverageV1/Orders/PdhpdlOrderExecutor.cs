@@ -64,9 +64,6 @@ public class PdhpdlOrderExecutor {
         _breakevenTriggerR = breakevenTriggerR;
         _breakevenOffsetTicks = breakevenOffsetTicks;
 
-        if (_riskGuard.NewsBlackoutWindowCount > 0)
-            _robot.Print("*****News blackout windows loaded. Count: {0}", _riskGuard.NewsBlackoutWindowCount);
-
         _robot.Positions.Closed += OnPositionClosed;
         _robot.Positions.Opened += OnPositionOpened;
     }
@@ -251,21 +248,6 @@ public class PdhpdlOrderExecutor {
         _pendingEntryEquitiesByLabel.Remove(order.Label);
         _pendingRiskPricesByLabel.Remove(order.Label);
         _pendingGateSnapshotsByLabel.Remove(order.Label);
-    }
-
-    private void CloseExposureBeforeRiskWindow() {
-        if (!_riskGuard.ShouldForceClose(_robot.Server.Time))
-            return;
-
-        foreach (PendingOrder order in _robot.PendingOrders.Where(IsStrategyPendingOrder).ToArray())
-            CancelPendingOrder(order, "risk guard force close");
-
-        foreach (Position position in _robot.Positions.Where(IsStrategyPosition).ToArray()) {
-            TradeResult result = _robot.ClosePosition(position);
-
-            if (!result.IsSuccessful)
-                _robot.Print("*****Risk guard close failed | Position: {0}, Error: {1}", position.Id, result.Error);
-        }
     }
 
     private bool ExecutePlan(PdhpdlOrderPlanModel planModel) {
