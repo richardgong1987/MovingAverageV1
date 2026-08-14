@@ -44,4 +44,10 @@ public class PdhpdlSignalModel {
 
     public double SlowRma { get; set; }
 
+    // |FastRma - SlowRma| / ATR14，都取均线来源周期（默认 120m）上同一根已收 K 线。
+    // 除以 ATR 是为了把间距换算成「几个 ATR」，阈值才能跨品种、跨波动率通用。ATR 缺失时为 NaN。
+    public double MaDistance { get; set; }
+
+    // X 系数：MaDistance 必须大于它才允许开仓。0 = 不启用。
+    public double MinMaDistance { get; set; }
 }
