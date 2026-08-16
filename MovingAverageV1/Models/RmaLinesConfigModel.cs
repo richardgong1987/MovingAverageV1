@@ -11,8 +11,8 @@ public class RmaLinesConfigModel {
 
     public int RMAPurplePeriod { get; set; } = 55;
 
-    // Blue and purple share one timeframe: MaDistance measures the gap between them, which only
-    // means something if both come off the same bar.
+    // Blue and purple share one timeframe: the GapExpansion gate measures the gap between them,
+    // which only means something if both come off the same bar.
     public int BluePurpleTimeFrameMinutes { get; set; } = 60;
 
     public int RMAYellowPeriod { get; set; } = 13;

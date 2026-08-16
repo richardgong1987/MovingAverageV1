@@ -52,9 +52,13 @@ public class MovingAverageV1 : Robot {
     [Parameter("均线周期 黄线 (45分钟)", DefaultValue = 13, MinValue = 1, Group = "均线")]
     public int RMAYellowPeriod { get; set; }
 
-    // MaDistance = |蓝线 - 紫线| / ATR14 必须大于这个系数才开仓，两边都取 60 分钟上的同一根已收 K 线。
-    [Parameter("X系数 (0=关闭)", DefaultValue = 0.0, MinValue = 0.0, Step = 0.1, Group = "均线")]
-    public double X { get; set; }
+    // 开口扩大闸门：(现在的蓝紫开口 - N 根 15 分钟 K 线之前的开口) / 60分钟 ATR14 ≥ X 才开仓。
+    // 蓝紫线跑在 60 分钟上，所以 N 会换算成 60 分钟的根数：4（1 小时前）→ 1 根，8（2 小时前）→ 2 根。
+    [Parameter("开口回看N (15分钟K线)", DefaultValue = 4, MinValue = 4, Group = "均线")]
+    public int GapExpansionLookbackBars { get; set; }
+
+    [Parameter("开口扩大X (ATR倍数, 0=关闭)", DefaultValue = 0.10, MinValue = 0.0, Step = 0.05, Group = "均线")]
+    public double GapExpansionX { get; set; }
 
     // ZigZag 突破窗口：越大结构点越少、确认越慢，连续同向入场的闸门也就越紧（见 ConsecutiveEntryGate）。
     [Parameter("ZigZag 长度", DefaultValue = 16, MinValue = 1, Group = "市场结构")]
@@ -72,7 +76,7 @@ public class MovingAverageV1 : Robot {
     // 图表周期的 ATR，只服务 IsBigK（比较图表 K 线自身的振幅）。
     private Atr14Series _atr14;
 
-    // 蓝紫线所在周期（60m）的 ATR，只服务 MaDistance。它和图表周期的 ATR 周期不同，不能共用一个实例。
+    // 蓝紫线所在周期（60m）的 ATR，只服务开口扩大闸门（GapExpansion）。它和图表周期的 ATR 周期不同，不能共用一个实例。
     private Atr14Series _rmaSourceAtr14;
     private MarketStructure _marketStructure;
 
@@ -86,7 +90,8 @@ public class MovingAverageV1 : Robot {
 
         // 同一个闸门实例两边共用：detector 侧读它决定放不放行，executor 侧在仓位真的开出来时写它。
         var entryGate = new ConsecutiveEntryGate();
-        _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries, _rmaSourceAtr14, _marketStructure, entryGate, X);
+        _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries, _rmaSourceAtr14, _marketStructure, entryGate,
+            BuildGapExpansionConfig());
         _signalMarkers = new PdhpdlSignalMarkers(Chart, Symbol.TickSize);
 
         _csvLogger = new PdhpdlTradeCsvLogger(ResetTradeLogOnStart, ResolveReportsDirectory(), FileName);
@@ -114,6 +119,10 @@ public class MovingAverageV1 : Robot {
         return new RmaLinesConfigModel {
             RMABluePeriod = RMABluePeriod, RMAPurplePeriod = RMAPurplePeriod, RMAYellowPeriod = RMAYellowPeriod
         };
+    }
+
+    private GapExpansionConfigModel BuildGapExpansionConfig() {
+        return new GapExpansionConfigModel { LookbackBars = GapExpansionLookbackBars, MinExpansionAtr = GapExpansionX };
     }
 
     private void DrawRmaLines() {

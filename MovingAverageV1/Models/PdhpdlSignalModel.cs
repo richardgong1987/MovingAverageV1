@@ -47,10 +47,11 @@ public class PdhpdlSignalModel {
     // 黄线 45m RMA13。它和蓝紫线不在同一个周期上，取的是自己周期上最后一根已收 K 线。
     public double YellowRma { get; set; }
 
-    // |BlueRma - PurpleRma| / ATR14，都取蓝紫线所在周期（60m）上同一根已收 K 线。
-    // 除以 ATR 是为了把间距换算成「几个 ATR」，阈值才能跨品种、跨波动率通用。ATR 缺失时为 NaN。
-    public double MaDistance { get; set; }
+    // 蓝紫开口的扩大幅度，多头视角：((BlueRma - PurpleRma)现在 - (BlueRma - PurpleRma)N根15M K线前) / 60m ATR14。
+    // 正数 = 蓝线正在往紫线上方拉开（多头在加速），负数 = 反过来（空头在加速）。
+    // 除以 ATR 是为了把增量换算成「几个 ATR」，阈值才能跨品种、跨波动率通用。ATR 缺失或历史不够时为 NaN。
+    public double GapExpansion { get; set; }
 
-    // X 系数：MaDistance 必须大于它才允许开仓。0 = 不启用。
-    public double MinMaDistance { get; set; }
+    // X 系数：GapExpansion 要达到这个 ATR 倍数才允许开仓（空头看的是取负之后的值）。0 = 不启用。
+    public double MinGapExpansion { get; set; }
 }

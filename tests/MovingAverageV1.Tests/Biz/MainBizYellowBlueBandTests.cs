@@ -58,8 +58,8 @@ namespace MovingAverageV1.Tests.Biz {
                 YellowRma = yellowRma,
                 BlueRma = 9.0,
                 PurpleRma = 8.0,
-                MaDistance = double.NaN,
-                MinMaDistance = 0.0
+                GapExpansion = double.NaN,
+                MinGapExpansion = 0.0
             };
 
             MainBiz.Evaluate(signalModel, current, previous, earlier, new ConsecutiveEntryGate());

@@ -15,7 +15,7 @@ public class MainBiz {
         if (!signalModel.HasRmaData)
             return false;
 
-        if (!IsMaDistanceSatisfied(signalModel))
+        if (!IsGapExpanding(signalModel, SignalSideModel.Sell))
             return false;
 
         /**
@@ -59,7 +59,7 @@ public class MainBiz {
         if (!signalModel.HasRmaData)
             return false;
 
-        if (!IsMaDistanceSatisfied(signalModel))
+        if (!IsGapExpanding(signalModel, SignalSideModel.Buy))
             return false;
 
         /**
@@ -99,17 +99,19 @@ public class MainBiz {
         return false;
     }
 
-    // 蓝紫线贴在一起时行情多半在震荡，形态信号在那里的胜率很差。用 ATR 归一化后的间距
-    // MaDistance = |BlueRma - PurpleRma| / ATR 必须大于 X 系数才放行。
+    // 蓝紫线拉开还不够，得在「继续拉开」：把这 N 根 15 分钟 K 线里开口的增量用 60 分钟 ATR14
+    // 归一化，至少要有 X 个 ATR 才放行。震荡里开口来回收窄，这道闸门把那里的形态挡在外面。
+    // 空头的开口是 PurpleRma - BlueRma，正好是 GapExpansion 的相反数，所以取负再比。
     // X = 0 表示这道闸门关闭；此时 ATR 缺失也不该把所有交易挡掉。
-    private static bool IsMaDistanceSatisfied(PdhpdlSignalModel signalModel) {
-        if (signalModel.MinMaDistance <= 0.0)
+    private static bool IsGapExpanding(PdhpdlSignalModel signalModel, SignalSideModel side) {
+        if (signalModel.MinGapExpansion <= 0.0)
             return true;
 
-        if (double.IsNaN(signalModel.MaDistance))
+        if (double.IsNaN(signalModel.GapExpansion))
             return false;
 
-        return signalModel.MaDistance > signalModel.MinMaDistance;
+        double expansion = side == SignalSideModel.Buy ? signalModel.GapExpansion : -signalModel.GapExpansion;
+        return expansion >= signalModel.MinGapExpansion;
     }
 
     // 信号必须长在黄蓝这条带上：45M RMA13 ~ 60M RMA13 之间的区域，碰到其中任意一条线、

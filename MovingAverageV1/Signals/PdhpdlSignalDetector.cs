@@ -12,16 +12,26 @@ public class PdhpdlSignalDetector {
     private readonly Atr14Series _rmaSourceAtr14;
     private readonly MarketStructure _marketStructure;
     private readonly ConsecutiveEntryGate _entryGate;
-    private readonly double _minMaDistance;
+    private readonly double _minGapExpansion;
+    private readonly int _gapLookbackBars;
 
     public PdhpdlSignalDetector(Bars chartBars, RmaSeriesSet rmaSeries, Atr14Series rmaSourceAtr14, MarketStructure marketStructure,
-        ConsecutiveEntryGate entryGate, double minMaDistance) {
+        ConsecutiveEntryGate entryGate, GapExpansionConfigModel gapExpansion) {
         _chartBars = chartBars;
         _rmaSeries = rmaSeries;
         _rmaSourceAtr14 = rmaSourceAtr14;
         _marketStructure = marketStructure;
         _entryGate = entryGate;
-        _minMaDistance = minMaDistance;
+        _minGapExpansion = gapExpansion.MinExpansionAtr;
+
+        // N 是按 15 分钟 K 线数的，蓝紫线却跑在 60 分钟上，所以这里换算成 60 分钟的根数：
+        // N=4（1 小时前）→ 1 根，N=8（2 小时前）→ 2 根。不够一根 60 分钟 K 线的回看没有意义，
+        // 与其悄悄当成 1 根，不如在启动时就报错。
+        _gapLookbackBars = gapExpansion.LookbackMinutes / rmaSeries.BluePurpleTimeFrameMinutes;
+
+        if (_gapLookbackBars < 1)
+            throw new ArgumentOutOfRangeException(nameof(gapExpansion), gapExpansion.LookbackMinutes,
+                $"Gap-expansion lookback must cover at least one {rmaSeries.BluePurpleTimeFrameMinutes}-minute bar.");
     }
 
     public PdhpdlSignalModel DetectOnClosedBar() {
@@ -61,8 +71,8 @@ public class PdhpdlSignalDetector {
         signalModel.BlueRma = double.NaN;
         signalModel.PurpleRma = double.NaN;
         signalModel.YellowRma = double.NaN;
-        signalModel.MaDistance = double.NaN;
-        signalModel.MinMaDistance = _minMaDistance;
+        signalModel.GapExpansion = double.NaN;
+        signalModel.MinGapExpansion = _minGapExpansion;
 
         if (!_rmaSeries.TryReadConfirmedTrend(out RmaTrendReadingModel trend))
             return;
@@ -72,15 +82,20 @@ public class PdhpdlSignalDetector {
         signalModel.BlueRma = trend.Blue;
         signalModel.PurpleRma = trend.Purple;
         signalModel.YellowRma = trend.Yellow;
-        signalModel.MaDistance = CalculateMaDistance(trend);
+        signalModel.GapExpansion = CalculateGapExpansion(trend);
     }
 
+    // 开口扩大幅度（多头视角）：(现在的蓝紫开口 - N 根 15 分钟 K 线之前的开口) / 60 分钟 ATR14。
     // ATR 必须取蓝紫线所在周期上的同一根已收 K 线：拿图表周期的 ATR 去除以高周期均线的间距，
     // 分子分母量纲不同，算出来的倍数没有意义。
-    private double CalculateMaDistance(RmaTrendReadingModel trend) {
-        if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.BluePurpleConfirmedIndex, out double atr))
+    private double CalculateGapExpansion(RmaTrendReadingModel trend) {
+        if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.BluePurpleConfirmedIndex, out double atr) || atr <= 0.0)
             return double.NaN;
 
-        return Math.Abs(trend.Blue - trend.Purple) / atr;
+        if (!_rmaSeries.TryGetBluePurpleGap(_gapLookbackBars, out double pastGap))
+            return double.NaN;
+
+        double currentGap = trend.Blue - trend.Purple;
+        return (currentGap - pastGap) / atr;
     }
 }
