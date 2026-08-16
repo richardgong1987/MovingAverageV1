@@ -53,6 +53,10 @@ public class MovingAverageV1 : Robot {
     [Parameter("X系数 (0=关闭)", DefaultValue = 0.0, MinValue = 0.0, Step = 0.1, Group = "均线")]
     public double X { get; set; }
 
+    // ZigZag 突破窗口：越大结构点越少、确认越慢，连续同向入场的闸门也就越紧（见 ConsecutiveEntryGate）。
+    [Parameter("ZigZag 长度", DefaultValue = 16, MinValue = 1, Group = "市场结构")]
+    public int ZigZagLength { get; set; }
+
     private DualRmaSeries _rmaSeries;
     private RmaSeries _midRmaSeries;
     private RmaLines _movingAverageLines;
@@ -73,7 +77,7 @@ public class MovingAverageV1 : Robot {
     protected override void OnStart() {
         LaunchDebug();
         DrawRmaLines();
-        _marketStructure = new MarketStructure(Chart, Bars);
+        _marketStructure = new MarketStructure(Chart, Bars, ZigZagLength);
         _marketStructure.Update();
         _atr14 = new Atr14Series(Indicators, Bars);
         _rmaSourceAtr14 = new Atr14Series(Indicators, _rmaSeries.SourceBars);

@@ -10,16 +10,16 @@ namespace cAlgo.Robots;
 // labels; the only thing the strategy reads from it is LatestPivot.
 //
 // The swing engine is a breakout zigzag, not a fractal one:
-//     toUp   = this bar's high is the highest of the last ZigZagLength bars
-//     toDown = this bar's low  is the lowest  of the last ZigZagLength bars
+//     toUp   = this bar's high is the highest of the last zigZagLength bars
+//     toDown = this bar's low  is the lowest  of the last zigZagLength bars
 // Trend starts at +1 and flips only on the opposite breakout, and the swing that just ended is
 // recorded at the moment of the flip. A leg therefore only appears once price has already
 // broken the other way; that lag is the indicator's design, not a porting artefact.
 public class MarketStructure {
-    // The Pine study exposes these as inputs. Here they stay constants: they change nothing
-    // about strategy or operational behaviour, and chart-only knobs must not become cBot
-    // parameters. Values are the Pine defaults.
-    private const int ZigZagLength = 40;
+    // The Pine study exposes these as inputs. Only the zigzag length is passed in: it decides
+    // where a swing is confirmed, and LatestPivot / PivotCount gate consecutive entries through
+    // ConsecutiveEntryGate, so it is real strategy behaviour. The rest are chart-only knobs and
+    // stay constants at their Pine defaults.
     private const int ZigZagWidth = 2;
     private const int LabelFontSize = 8; // Pine size.tiny
 
@@ -36,6 +36,7 @@ public class MarketStructure {
 
     private readonly Chart _chart;
     private readonly Bars _bars;
+    private readonly int _zigZagLength;
 
     private readonly Queue<string> _legNames = new();
     private readonly Queue<string> _labelNames = new();
@@ -71,9 +72,13 @@ public class MarketStructure {
     // 同一个结构点只能放行一笔，光看 LatestPivot 的颜色区分不出新旧。
     public int PivotCount { get; private set; }
 
-    public MarketStructure(Chart chart, Bars bars) {
+    public MarketStructure(Chart chart, Bars bars, int zigZagLength) {
+        if (zigZagLength < 1)
+            throw new ArgumentOutOfRangeException(nameof(zigZagLength), zigZagLength, "ZigZag length must be at least 1 bar.");
+
         _chart = chart;
         _bars = bars;
+        _zigZagLength = zigZagLength;
     }
 
     // Advance over every bar that has closed since the last call. Working on closed bars only
@@ -91,9 +96,9 @@ public class MarketStructure {
         bool toDown = false;
 
         // ta.highest / ta.lowest are na until `length` bars exist, and `high >= na` is false.
-        if (index >= ZigZagLength - 1) {
-            toUp = _bars.HighPrices[index] >= HighestHigh(index, ZigZagLength);
-            toDown = _bars.LowPrices[index] <= LowestLow(index, ZigZagLength);
+        if (index >= _zigZagLength - 1) {
+            toUp = _bars.HighPrices[index] >= HighestHigh(index, _zigZagLength);
+            toDown = _bars.LowPrices[index] <= LowestLow(index, _zigZagLength);
         }
 
         // ta.barssince(toUp[1]): the Pine source counts from the bar AFTER a breakout, which is
