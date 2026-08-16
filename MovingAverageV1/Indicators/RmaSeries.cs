@@ -46,24 +46,8 @@ public class RmaSeries {
 
     private static TimeFrame ToTimeFrame(int minutes) {
         return minutes switch {
-            1 => TimeFrame.Minute,
-            2 => TimeFrame.Minute2,
-            3 => TimeFrame.Minute3,
-            4 => TimeFrame.Minute4,
-            5 => TimeFrame.Minute5,
-            10 => TimeFrame.Minute10,
-            15 => TimeFrame.Minute15,
-            20 => TimeFrame.Minute20,
-            30 => TimeFrame.Minute30,
             45 => TimeFrame.Minute45,
             60 => TimeFrame.Hour,
-            120 => TimeFrame.Hour2,
-            180 => TimeFrame.Hour3,
-            240 => TimeFrame.Hour4,
-            360 => TimeFrame.Hour6,
-            480 => TimeFrame.Hour8,
-            720 => TimeFrame.Hour12,
-            1440 => TimeFrame.Daily,
             _ => throw new ArgumentOutOfRangeException(nameof(minutes), minutes, "Unsupported higher-timeframe minutes for RmaSeries.")
         };
     }
