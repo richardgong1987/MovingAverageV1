@@ -6,8 +6,8 @@ public class MainBiz {
     public static void Evaluate(PdhpdlSignalModel signalModel, CandleModel current, CandleModel previous, CandleModel earlier,
         ConsecutiveEntryGate entryGate) {
         HanJinSignalScanModel scanResult = HanJinSignals26.Scan(current, previous, earlier);
-        signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous, earlier, entryGate);
         signalModel.IsLongSignal = IsLongSignal(signalModel, scanResult, current, previous, earlier, entryGate);
+        signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous, earlier, entryGate);
     }
 
     private static bool IsShortSignal(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
