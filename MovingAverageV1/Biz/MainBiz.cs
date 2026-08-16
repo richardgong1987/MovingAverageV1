@@ -4,14 +4,14 @@ namespace cAlgo.Robots;
 
 public class MainBiz {
     public static void Evaluate(PdhpdlSignalModel signalModel, CandleModel current, CandleModel previous, CandleModel earlier,
-        ConsecutiveEntryGate entryGate) {
+        PivotEntryGate entryGate) {
         HanJinSignalScanModel scanResult = HanJinSignals26.Scan(current, previous, earlier);
         signalModel.IsLongSignal = IsLongSignal(signalModel, scanResult, current, previous, earlier, entryGate);
         signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous, earlier, entryGate);
     }
 
     private static bool IsShortSignal(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
-        CandleModel previous, CandleModel earlier, ConsecutiveEntryGate entryGate) {
+        CandleModel previous, CandleModel earlier, PivotEntryGate entryGate) {
         if (!signalModel.HasRmaData)
             return false;
 
@@ -28,7 +28,7 @@ public class MainBiz {
         if (!MatchesShortPattern(signalModel, scanResult, current, previous, earlier))
             return false;
 
-        // 连续第 2 笔以上的作空，MarketStructure 最后标出的必须是 LL（LH 不算），
+        // 每一笔作空都要吃掉一个新的 LL：MarketStructure 最后标出的必须是 LL（LH 不算），
         // 而且要是上一笔作空之后才新出的那一个。
         return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Short, signalModel.LatestPivot, signalModel.PivotCount);
     }
@@ -55,7 +55,7 @@ public class MainBiz {
     }
 
     private static bool IsLongSignal(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
-        CandleModel previous, CandleModel earlier, ConsecutiveEntryGate entryGate) {
+        CandleModel previous, CandleModel earlier, PivotEntryGate entryGate) {
         if (!signalModel.HasRmaData)
             return false;
 
@@ -73,7 +73,7 @@ public class MainBiz {
         if (!MatchesLongPattern(signalModel, scanResult, current, previous, earlier))
             return false;
 
-        // 连续第 2 笔以上的作多，MarketStructure 最后标出的必须是 HH（HL 不算），
+        // 每一笔作多都要吃掉一个新的 HH：MarketStructure 最后标出的必须是 HH（HL 不算），
         // 而且要是上一笔作多之后才新出的那一个。
         return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Long, signalModel.LatestPivot, signalModel.PivotCount);
     }

@@ -17,8 +17,8 @@ namespace cAlgo.Robots;
 // broken the other way; that lag is the indicator's design, not a porting artefact.
 public class MarketStructure {
     // The Pine study exposes these as inputs. Only the zigzag length is passed in: it decides
-    // where a swing is confirmed, and LatestPivot / PivotCount gate consecutive entries through
-    // ConsecutiveEntryGate, so it is real strategy behaviour. The rest are chart-only knobs and
+    // where a swing is confirmed, and LatestPivot / PivotCount gate every entry through
+    // PivotEntryGate, so it is real strategy behaviour. The rest are chart-only knobs and
     // stay constants at their Pine defaults.
     private const int ZigZagWidth = 2;
     private const int LabelFontSize = 8; // Pine size.tiny
@@ -64,11 +64,11 @@ public class MarketStructure {
 
     // 最近一次新确认的结构点，也就是图上最后画出来的那个标签：翻转向上确认的是低点（LL / HL），
     // 翻转向下确认的是高点（HH / LH）。DrawSwing 每次翻转会把两个标签都重画一遍，但只有这一个是新的。
-    // 见 ConsecutiveEntryGate：连续同向入场靠它判断结构是否还站在自己这一边。
+    // 见 PivotEntryGate：每一笔入场都要靠它确认结构站在自己这一边。
     public MarketStructurePivotModel LatestPivot { get; private set; }
 
     // 到目前为止一共新确认过多少个结构点，只增不减 —— 相当于 LatestPivot 的编号。
-    // ConsecutiveEntryGate 靠「比上一笔入场时记下的值大」来确认这是新出的那一个：
+    // PivotEntryGate 靠「比上一笔入场时记下的值大」来确认这是新出的那一个：
     // 同一个结构点只能放行一笔，光看 LatestPivot 的颜色区分不出新旧。
     public int PivotCount { get; private set; }
 

@@ -23,7 +23,7 @@ public class PdhpdlOrderExecutor {
     private readonly PdhpdlRiskGuard _riskGuard;
     private readonly PdhpdlTradeCsvLogger _csvLogger;
     private readonly IPdhpdlSymbolModel _symbolModel;
-    private readonly ConsecutiveEntryGate _entryGate;
+    private readonly PivotEntryGate _entryGate;
 
     // 浮盈达到这么多个 R 就把止损推到保本位。0 表示关闭，止损全程留在开仓时的位置。
     private readonly double _breakevenTriggerR;
@@ -53,7 +53,7 @@ public class PdhpdlOrderExecutor {
     private readonly HashSet<int> _positionsProtected = new();
 
     public PdhpdlOrderExecutor(Robot robot, string symbolName, string timeFrame, PdhpdlOrderPlanner planner, PdhpdlRiskGuard riskGuard,
-        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, ConsecutiveEntryGate entryGate, double breakevenTriggerR,
+        PdhpdlTradeCsvLogger csvLogger, IPdhpdlSymbolModel symbolModel, PivotEntryGate entryGate, double breakevenTriggerR,
         int breakevenOffsetTicks) {
         _robot = robot;
         _symbolName = symbolName;
@@ -335,7 +335,7 @@ public class PdhpdlOrderExecutor {
         RecordEntryForGate(args.Position.Label);
     }
 
-    // 仓位真正开出来才算一笔同向入场。用的是下单那一刻的结构点编号，也就是闸门放行时比对过的
+    // 仓位真正开出来才算吃掉一个令牌。用的是下单那一刻的结构点编号，也就是闸门放行时比对过的
     // 那个基准，这样「一个结构点放行一笔」才对得上：挂单成交时可能又新出了几个结构点，
     // 拿成交那一刻的编号记账会把它们一并当成已经用掉。
     private void RecordEntryForGate(string label) {
@@ -344,8 +344,7 @@ public class PdhpdlOrderExecutor {
 
         _pendingGateSnapshotsByLabel.Remove(label);
         _entryGate.RecordEntry(snapshot.Direction, snapshot.PivotCount);
-        _robot.Print("*****Entry recorded | Side: {0}, ConsecutiveCount: {1}, PivotCount: {2}", snapshot.Direction,
-            _entryGate.ConsecutiveCount, snapshot.PivotCount);
+        _robot.Print("*****Entry recorded | Side: {0}, PivotCount: {1}", snapshot.Direction, snapshot.PivotCount);
     }
 
     private readonly struct EntryGateSnapshot {

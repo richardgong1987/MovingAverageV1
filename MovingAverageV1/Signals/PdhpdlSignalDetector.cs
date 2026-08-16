@@ -11,12 +11,12 @@ public class PdhpdlSignalDetector {
     private readonly RmaSeriesSet _rmaSeries;
     private readonly Atr14Series _rmaSourceAtr14;
     private readonly MarketStructure _marketStructure;
-    private readonly ConsecutiveEntryGate _entryGate;
+    private readonly PivotEntryGate _entryGate;
     private readonly double _minGapExpansion;
     private readonly int _gapLookbackBars;
 
     public PdhpdlSignalDetector(Bars chartBars, RmaSeriesSet rmaSeries, Atr14Series rmaSourceAtr14, MarketStructure marketStructure,
-        ConsecutiveEntryGate entryGate, GapExpansionConfigModel gapExpansion) {
+        PivotEntryGate entryGate, GapExpansionConfigModel gapExpansion) {
         _chartBars = chartBars;
         _rmaSeries = rmaSeries;
         _rmaSourceAtr14 = rmaSourceAtr14;

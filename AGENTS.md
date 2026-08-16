@@ -22,6 +22,7 @@ highs and lows; do not infer behaviour from it.
 | Direction filter | `MainBiz`, `RmaUtils` | Three-line stack: longs need yellow > blue > purple (45m RMA13 > 60m RMA13 > 60m RMA55), shorts the reverse |
 | Momentum filter | `MainBiz.IsGapExpanding`, `PdhpdlSignalDetector` | The blue/purple gap must be widening: `(gap_now − gap_N) / 60m ATR14 ≥ X`, N counted in 15m bars |
 | Entry signal | `HanJinSignals26` → `MainBiz` | Candlestick patterns on the last **closed** bar (pinbar, engulfing, fractal, harami), and the pattern must overlap the yellow–blue band |
+| Structure token | `PivotEntryGate` + `MarketStructure` | Every long spends a fresh `HH`, every short a fresh `LL`; a pivot lets exactly one entry through, longs and shorts tracked separately |
 | Stop | `PdhpdlOrderPlanner` | The pattern's own SL price, pushed out by `StopOffsetTicks` |
 | Sizing | `PdhpdlOrderPlanner` + `PdhpdlRiskGuard` | `RiskPct` of equity, converted through the symbol's pip value |
 | Take profit | `PdhpdlOrderPlanner` | Fixed `TakeProfitR × R`, written onto the order at entry and executed **broker-side** |

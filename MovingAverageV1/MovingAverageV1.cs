@@ -60,7 +60,7 @@ public class MovingAverageV1 : Robot {
     [Parameter("开口扩大X (ATR倍数, 0=关闭)", DefaultValue = 0.10, MinValue = 0.0, Step = 0.05, Group = "均线")]
     public double GapExpansionX { get; set; }
 
-    // ZigZag 突破窗口：越大结构点越少、确认越慢，连续同向入场的闸门也就越紧（见 ConsecutiveEntryGate）。
+    // ZigZag 突破窗口：越大结构点越少、确认越慢，结构点令牌闸门也就越紧（见 PivotEntryGate）。
     [Parameter("ZigZag 长度", DefaultValue = 16, MinValue = 1, Group = "市场结构")]
     public int ZigZagLength { get; set; }
 
@@ -89,7 +89,7 @@ public class MovingAverageV1 : Robot {
         _rmaSourceAtr14 = new Atr14Series(Indicators, _rmaSeries.Blue.SourceBars);
 
         // 同一个闸门实例两边共用：detector 侧读它决定放不放行，executor 侧在仓位真的开出来时写它。
-        var entryGate = new ConsecutiveEntryGate();
+        var entryGate = new PivotEntryGate();
         _signalDetector = new PdhpdlSignalDetector(Bars, _rmaSeries, _rmaSourceAtr14, _marketStructure, entryGate,
             BuildGapExpansionConfig());
         _signalMarkers = new PdhpdlSignalMarkers(Chart, Symbol.TickSize);

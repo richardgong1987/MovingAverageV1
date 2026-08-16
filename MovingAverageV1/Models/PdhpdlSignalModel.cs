@@ -30,7 +30,7 @@ public class PdhpdlSignalModel {
     public bool IsBigK { get; set; }
 
     // MarketStructure 到这根 K 线为止最后标出的结构点，及它的编号（第几个）。
-    // ConsecutiveEntryGate 用前者判断方向、后者判断新旧。
+    // PivotEntryGate 用前者判断方向、后者判断新旧。
     public MarketStructurePivotModel LatestPivot { get; set; }
 
     public int PivotCount { get; set; }

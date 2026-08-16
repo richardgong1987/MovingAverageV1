@@ -87,18 +87,20 @@ namespace MovingAverageV1.Tests.Biz {
         private static PdhpdlSignalModel EvaluateLongPinbar(double gapExpansion, double minGapExpansion) {
             CandleModel current = new(open: 9.0, high: 10.0, low: 0.0, close: 9.5);
 
-            return Evaluate(current, yellowRma: 9.5, blueRma: 9.0, purpleRma: 8.0, gapExpansion, minGapExpansion);
+            return Evaluate(current, yellowRma: 9.5, blueRma: 9.0, purpleRma: 8.0, gapExpansion, minGapExpansion,
+                MarketStructurePivotModel.HigherHigh);
         }
 
         // 卖出 pinbar：上下影与买入 pinbar 对称，三线是空头排列（黄 < 蓝 < 紫）。
         private static PdhpdlSignalModel EvaluateShortPinbar(double gapExpansion, double minGapExpansion) {
             CandleModel current = new(open: 1.0, high: 10.0, low: 0.0, close: 0.5);
 
-            return Evaluate(current, yellowRma: 4.0, blueRma: 5.0, purpleRma: 8.0, gapExpansion, minGapExpansion);
+            return Evaluate(current, yellowRma: 4.0, blueRma: 5.0, purpleRma: 8.0, gapExpansion, minGapExpansion,
+                MarketStructurePivotModel.LowerLow);
         }
 
         private static PdhpdlSignalModel Evaluate(CandleModel current, double yellowRma, double blueRma, double purpleRma,
-            double gapExpansion, double minGapExpansion) {
+            double gapExpansion, double minGapExpansion, MarketStructurePivotModel latestPivot) {
             CandleModel previous = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);
             CandleModel earlier = new(open: 5.0, high: 6.0, low: 4.0, close: 5.0);
 
@@ -113,10 +115,12 @@ namespace MovingAverageV1.Tests.Biz {
                 BlueRma = blueRma,
                 PurpleRma = purpleRma,
                 GapExpansion = gapExpansion,
-                MinGapExpansion = minGapExpansion
+                MinGapExpansion = minGapExpansion,
+                LatestPivot = latestPivot,
+                PivotCount = 1
             };
 
-            MainBiz.Evaluate(signalModel, current, previous, earlier, new ConsecutiveEntryGate());
+            MainBiz.Evaluate(signalModel, current, previous, earlier, new PivotEntryGate());
             return signalModel;
         }
     }

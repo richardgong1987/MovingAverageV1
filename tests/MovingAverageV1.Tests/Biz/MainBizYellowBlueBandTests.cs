@@ -59,10 +59,12 @@ namespace MovingAverageV1.Tests.Biz {
                 BlueRma = 9.0,
                 PurpleRma = 8.0,
                 GapExpansion = double.NaN,
-                MinGapExpansion = 0.0
+                MinGapExpansion = 0.0,
+                LatestPivot = MarketStructurePivotModel.HigherHigh,
+                PivotCount = 1
             };
 
-            MainBiz.Evaluate(signalModel, current, previous, earlier, new ConsecutiveEntryGate());
+            MainBiz.Evaluate(signalModel, current, previous, earlier, new PivotEntryGate());
             return signalModel;
         }
     }
