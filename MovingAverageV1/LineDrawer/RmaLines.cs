@@ -5,11 +5,11 @@ using cAlgo.API.Internals;
 namespace cAlgo.Robots;
 
 // C# port of the "MA 1 + MA 2" Pine indicator, plus a third reference line:
-//   MA 1 (fast) blue, MA 2 (slow) orange-red — the pair the strategy trades off,
+//   MA 1 (fast) blue, MA 2 (slow) yellow — the pair the strategy trades off,
 //   MA 3 (mid)  purple — a shorter-timeframe RMA drawn for context only.
 public class RmaLines {
     private static readonly Color FastColor = Color.Blue;
-    private static readonly Color SlowColor = Color.OrangeRed;
+    private static readonly Color SlowColor = Color.Yellow;
     private static readonly Color MidColor = Color.Purple;
 
     private readonly List<RmaLine> _lines;
