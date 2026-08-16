@@ -116,7 +116,7 @@ public class MovingAverageV1 : Robot {
 
     private void DrawRmaLines() {
         RmaLinesConfigModel rmaConfig = BuildMovingAverageConfig();
-        _rmaSeries = new RmaSeriesSet(MarketData, Indicators, SymbolName, Bars, rmaConfig);
+        _rmaSeries = new RmaSeriesSet(MarketData, Indicators, SymbolName, rmaConfig);
         _movingAverageLines = new RmaLines(Chart, Bars, _rmaSeries, rmaConfig.Thickness);
         _movingAverageLines.Draw();
     }

@@ -7,12 +7,9 @@ namespace cAlgo.Robots;
 
 // Draws one Welles-Wilder (ta.rma) moving average on the chart.
 //
-// Two selectable sources (see MovingAverageSourceModel):
-//   HigherTimeFrame - RMA on the series' own higher timeframe, drawn as a stepped line that
-//                     holds each value until the higher-timeframe bar confirms.
-//                     Faithful to request.security(tickerid, "120", ...).
-//   ChartTimeFrame  - RMA on the chart's own bars, one point per candle. Tracks
-//                     price without the higher-timeframe stepping lag.
+// The average lives on its own timeframe, higher than the chart's, so it is drawn as a stepped
+// line that holds each value until that timeframe's bar confirms — faithful to
+// request.security(tickerid, "60", ...) with lookahead off.
 public class RmaLine {
     private const string Prefix = "RMA_";
 
@@ -24,7 +21,6 @@ public class RmaLine {
     private readonly Bars _chartBars;
     private readonly Bars _sourceBars;
     private readonly IndicatorDataSeries _values;
-    private readonly MovingAverageSourceModel _source;
     private readonly string _lineKey;
     private readonly Color _color;
     private readonly int _thickness;
@@ -36,7 +32,6 @@ public class RmaLine {
         _chart = chart;
         _chartBars = chartBars;
         _lineKey = lineKey;
-        _source = series.Source;
         _sourceBars = series.SourceBars;
         _values = series.Values;
         _color = color;
@@ -58,13 +53,7 @@ public class RmaLine {
 
         Clear();
 
-        int startIndex = Math.Max(1, _sourceBars.Count - MaxSegmentsPerLine);
-
-        if (_source == MovingAverageSourceModel.ChartTimeFrame) {
-            DrawSmoothLine(startIndex);
-        } else {
-            DrawSteppedLine(startIndex);
-        }
+        DrawSteppedLine(Math.Max(1, _sourceBars.Count - MaxSegmentsPerLine));
     }
 
     public void Clear() {
@@ -75,21 +64,7 @@ public class RmaLine {
         _objectNames.Clear();
     }
 
-    // Chart-timeframe mode: join consecutive per-bar averages into one line.
-    private void DrawSmoothLine(int startIndex) {
-        for (int i = startIndex; i < _sourceBars.Count - 1; i++) {
-            double fromValue = _values[i];
-            double toValue = _values[i + 1];
-
-            if (double.IsNaN(fromValue) || double.IsNaN(toValue))
-                continue;
-
-            DrawSegment($"{Prefix}{_lineKey}_{_sourceBars.OpenTimes[i]:yyyyMMddHHmm}", _sourceBars.OpenTimes[i], fromValue,
-                _sourceBars.OpenTimes[i + 1], toValue);
-        }
-    }
-
-    // Higher-timeframe mode: replicate request.security with lookahead off. A
+    // Replicate request.security with lookahead off. A
     // higher-timeframe average value is only known once its bar closes, so it is
     // held flat from that close until the next close, then steps to the new
     // value. The last confirmed value is held out to the current chart time.

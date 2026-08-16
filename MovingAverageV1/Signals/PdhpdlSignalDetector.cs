@@ -75,7 +75,7 @@ public class PdhpdlSignalDetector {
         signalModel.MaDistance = CalculateMaDistance(trend);
     }
 
-    // ATR 必须取均线来源周期上的同一根已收 K 线：拿图表周期的 ATR 去除以高周期均线的间距，
+    // ATR 必须取蓝紫线所在周期上的同一根已收 K 线：拿图表周期的 ATR 去除以高周期均线的间距，
     // 分子分母量纲不同，算出来的倍数没有意义。
     private double CalculateMaDistance(RmaTrendReadingModel trend) {
         if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.BluePurpleConfirmedIndex, out double atr))

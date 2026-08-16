@@ -7,8 +7,6 @@ namespace cAlgo.Robots;
 //   Yellow - 45m RMA13
 // Pure data: no cAlgo.API references so it stays trivially inspectable.
 public class RmaLinesConfigModel {
-    public MovingAverageSourceModel Source { get; set; } = MovingAverageSourceModel.HigherTimeFrame;
-
     public int BluePeriod { get; set; } = 13;
 
     public int PurplePeriod { get; set; } = 55;
