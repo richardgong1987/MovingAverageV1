@@ -7,15 +7,15 @@ namespace cAlgo.Robots;
 //   Yellow - 45m RMA13
 // Pure data: no cAlgo.API references so it stays trivially inspectable.
 public class RmaLinesConfigModel {
-    public int BluePeriod { get; set; } = 13;
+    public int RMABluePeriod { get; set; } = 13;
 
-    public int PurplePeriod { get; set; } = 55;
+    public int RMAPurplePeriod { get; set; } = 55;
 
     // Blue and purple share one timeframe: MaDistance measures the gap between them, which only
     // means something if both come off the same bar.
     public int BluePurpleTimeFrameMinutes { get; set; } = 60;
 
-    public int YellowPeriod { get; set; } = 13;
+    public int RMAYellowPeriod { get; set; } = 13;
 
     // Yellow runs on a shorter timeframe on purpose: it is the first of the three to turn, which
     // is what makes the stacking rule mean something. Fixed here rather than exposed as a cBot

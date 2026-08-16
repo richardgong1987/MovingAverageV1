@@ -111,7 +111,9 @@ public class MovingAverageV1 : Robot {
     }
 
     private RmaLinesConfigModel BuildMovingAverageConfig() {
-        return new RmaLinesConfigModel { BluePeriod = RMABluePeriod, PurplePeriod = RMAPurplePeriod, YellowPeriod = RMAYellowPeriod };
+        return new RmaLinesConfigModel {
+            RMABluePeriod = RMABluePeriod, RMAPurplePeriod = RMAPurplePeriod, RMAYellowPeriod = RMAYellowPeriod
+        };
     }
 
     private void DrawRmaLines() {

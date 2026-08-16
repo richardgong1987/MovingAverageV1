@@ -12,9 +12,9 @@ namespace cAlgo.Robots;
 // The direction filter compares all three (RmaUtils.IsBullishStack / IsBearishStack).
 public class RmaSeriesSet {
     public RmaSeriesSet(MarketData marketData, IIndicatorsAccessor indicators, string symbolName, RmaLinesConfigModel config) {
-        Blue = new RmaSeries(marketData, indicators, symbolName, config.BluePeriod, config.BluePurpleTimeFrameMinutes);
-        Purple = new RmaSeries(marketData, indicators, symbolName, config.PurplePeriod, config.BluePurpleTimeFrameMinutes);
-        Yellow = new RmaSeries(marketData, indicators, symbolName, config.YellowPeriod, config.YellowTimeFrameMinutes);
+        Blue = new RmaSeries(marketData, indicators, symbolName, config.RMABluePeriod, config.BluePurpleTimeFrameMinutes);
+        Purple = new RmaSeries(marketData, indicators, symbolName, config.RMAPurplePeriod, config.BluePurpleTimeFrameMinutes);
+        Yellow = new RmaSeries(marketData, indicators, symbolName, config.RMAYellowPeriod, config.YellowTimeFrameMinutes);
     }
 
     public RmaSeries Blue { get; }
