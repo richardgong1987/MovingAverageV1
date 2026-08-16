@@ -26,10 +26,6 @@ public class MainBiz {
         if (rmaPosition == RmaPositionModel.FastAboveSlow)
             return false;
 
-        if (!Utils.IsStrategyModeSatisfied(signalModel, current, SignalSideModel.Sell)) {
-            return false;
-        }
-
         if (!MatchesShortPattern(signalModel, scanResult, current, previous, earlier))
             return false;
 
@@ -73,10 +69,6 @@ public class MainBiz {
          * 蓝线在下面，代表，只作空。这但这里都是作多的，所以就不走这里的逻辑了。
          */
         if (rmaPosition == RmaPositionModel.FastBelowSlow) {
-            return false;
-        }
-
-        if (!Utils.IsStrategyModeSatisfied(signalModel, current, SignalSideModel.Buy)) {
             return false;
         }
 
