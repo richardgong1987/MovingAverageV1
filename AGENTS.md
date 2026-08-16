@@ -19,7 +19,7 @@ highs and lows; do not infer behaviour from it.
 
 | Step | Where | Rule |
 | --- | --- | --- |
-| Direction filter | `Utils.IsStrategyModeSatisfied`, `RmaUtils` | Fast/slow RMA relative position; `StrategyModel` picks how strict |
+| Direction filter | `MainBiz`, `RmaUtils` | Fast/slow RMA relative position: longs need fast ≥ slow, shorts need fast ≤ slow |
 | Entry signal | `HanJinSignals26` → `MainBiz` | Candlestick patterns on the last **closed** bar (pinbar, engulfing, fractal, harami) |
 | Stop | `PdhpdlOrderPlanner` | The pattern's own SL price, pushed out by `StopOffsetTicks` |
 | Sizing | `PdhpdlOrderPlanner` + `PdhpdlRiskGuard` | `RiskPct` of equity, converted through the symbol's pip value |

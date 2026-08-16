@@ -49,7 +49,7 @@ namespace MovingAverageV1.Tests.Biz {
             Assert.True(signalModel.IsLongSignal);
         }
 
-        // 买入 pinbar：长下影、几乎没有上影，收盘价 > 快线 > 慢线（强多头），快线又落在这根 K 线的
+        // 买入 pinbar：长下影、几乎没有上影，快线在慢线上方（多头排列），快线又落在这根 K 线的
         // 高低点之间（信号长在快线上）。
         private static PdhpdlSignalModel EvaluateLongPinbar(double maDistance, double minMaDistance) {
             CandleModel current = new(open: 9.0, high: 10.0, low: 0.0, close: 9.5);
@@ -58,7 +58,6 @@ namespace MovingAverageV1.Tests.Biz {
 
             PdhpdlSignalModel signalModel = new() {
                 HasData = true,
-                Strategy = StrategyModel.Strong,
                 Open = current.Open,
                 High = current.High,
                 Low = current.Low,
