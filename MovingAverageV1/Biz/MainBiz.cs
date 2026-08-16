@@ -112,15 +112,20 @@ public class MainBiz {
         return signalModel.MaDistance > signalModel.MinMaDistance;
     }
 
-    // 信号必须长在蓝线上：构成这个形态的 K 线里，至少有一根把蓝线夹在自己的高低点之间（影线算数）。
+    // 信号必须长在黄蓝这条带上：45M RMA13 ~ 60M RMA13 之间的区域，碰到其中任意一条线、
+    // 或者整根落在两条线之间，都算数（影线算数）。构成这个形态的 K 线里至少要有一根和这条带重叠。
+    // 哪条线在上不固定（多头黄在上，空头蓝在上），所以带的上下沿要取两条线的最大最小值。
     // 传进来的只能是这个形态自己用到的那几根 —— pinbar 一根、吞没两根、分型和孕线三根。
     // 笼统地拿三根去判断是错的：单根形态会被隔壁那根的触碰放行。
-    private static bool AnyTouchesBlueRma(PdhpdlSignalModel signalModel, params CandleModel[] patternCandles) {
-        if (double.IsNaN(signalModel.BlueRma))
+    private static bool AnyTouchesYellowBlueBand(PdhpdlSignalModel signalModel, params CandleModel[] patternCandles) {
+        if (double.IsNaN(signalModel.YellowRma) || double.IsNaN(signalModel.BlueRma))
             return false;
 
+        double bandLow = Math.Min(signalModel.YellowRma, signalModel.BlueRma);
+        double bandHigh = Math.Max(signalModel.YellowRma, signalModel.BlueRma);
+
         foreach (CandleModel candle in patternCandles) {
-            if (candle.Low <= signalModel.BlueRma && candle.High >= signalModel.BlueRma)
+            if (candle.Low <= bandHigh && candle.High >= bandLow)
                 return true;
         }
 
@@ -132,7 +137,7 @@ public class MainBiz {
         if (scanResult.FractalTop != SignalSideModel.Sell || !Utils.AnyBarIsShort(current))
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesYellowBlueBand(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "S_Top";
@@ -145,7 +150,7 @@ public class MainBiz {
         if (scanResult.HaramiSingle != SignalSideModel.Sell)
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesYellowBlueBand(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "S_Harami";
@@ -158,7 +163,7 @@ public class MainBiz {
         if (scanResult.Engulf != SignalSideModel.Sell)
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current, previous))
+        if (!AnyTouchesYellowBlueBand(signalModel, current, previous))
             return false;
 
         signalModel.Label = "S_Eng";
@@ -170,7 +175,7 @@ public class MainBiz {
         if (scanResult.Pinbar != SignalSideModel.Sell)
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current))
+        if (!AnyTouchesYellowBlueBand(signalModel, current))
             return false;
 
         signalModel.Label = "S_Pin";
@@ -183,7 +188,7 @@ public class MainBiz {
         if (scanResult.FractalBottom != SignalSideModel.Buy || !Utils.AnyBarIsLong(current))
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesYellowBlueBand(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "L_Bot";
@@ -196,7 +201,7 @@ public class MainBiz {
         if (scanResult.HaramiSingle != SignalSideModel.Buy)
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesYellowBlueBand(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "L_Harami";
@@ -209,7 +214,7 @@ public class MainBiz {
         if (scanResult.Engulf != SignalSideModel.Buy)
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current, previous))
+        if (!AnyTouchesYellowBlueBand(signalModel, current, previous))
             return false;
 
         signalModel.Label = "L_Eng";
@@ -221,7 +226,7 @@ public class MainBiz {
         if (scanResult.Pinbar != SignalSideModel.Buy)
             return false;
 
-        if (!AnyTouchesBlueRma(signalModel, current))
+        if (!AnyTouchesYellowBlueBand(signalModel, current))
             return false;
 
         signalModel.Label = "L_Pin";
