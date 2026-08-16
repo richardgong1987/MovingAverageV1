@@ -40,9 +40,6 @@ public class MovingAverageV1 : Robot {
     [Parameter("输出文件名", DefaultValue = "MovingAverageV1-trades.csv", Group = "开发调试")]
     public string FileName { get; set; }
 
-    [Parameter("均线来源", DefaultValue = MovingAverageSourceModel.HigherTimeFrame, Group = "均线")]
-    public MovingAverageSourceModel MaSource { get; set; }
-
     [Parameter("均线周期 RMA 1 (快,蓝线)", DefaultValue = 13, MinValue = 1, Group = "均线")]
     public int MaFastPeriod { get; set; }
 
@@ -108,7 +105,7 @@ public class MovingAverageV1 : Robot {
     }
 
     private RmaLinesConfigModel BuildMovingAverageConfig() {
-        return new RmaLinesConfigModel { Source = MaSource, FastPeriod = MaFastPeriod, SlowPeriod = MaSlowPeriod, MidPeriod = MaMidPeriod };
+        return new RmaLinesConfigModel { FastPeriod = MaFastPeriod, SlowPeriod = MaSlowPeriod, MidPeriod = MaMidPeriod };
     }
 
     private void DrawRmaLines() {
