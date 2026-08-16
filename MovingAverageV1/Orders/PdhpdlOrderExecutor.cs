@@ -35,7 +35,9 @@ public class PdhpdlOrderExecutor {
     private readonly Dictionary<string, string> _pendingCsvIdsByLabel = new();
     private readonly Dictionary<string, double> _pendingEntryEquitiesByLabel = new();
     private readonly Dictionary<string, double> _pendingRiskPricesByLabel = new();
+
     private readonly Dictionary<int, int> _pendingOrderBarIndexById = new();
+
     // 下单时先按 label 记下方向和当时的结构点编号，等仓位真的开出来（OnPositionOpened）再交给
     // 闸门。挂单没成交就撤掉的那些，永远不会走到记账这一步。
     private readonly Dictionary<string, EntryGateSnapshot> _pendingGateSnapshotsByLabel = new();
@@ -161,7 +163,7 @@ public class PdhpdlOrderExecutor {
             return false;
         }
 
-        if (signalModel.Strategy != StrategyModel.MultiplePosition && (HasOpenSymbolPosition() || HasOpenSymbolPendingOrder())) {
+        if (HasOpenSymbolPosition() || HasOpenSymbolPendingOrder()) {
             _robot.Print("*****Order skipped | Existing position found on symbol: {0}", _symbolName);
             return false;
         }

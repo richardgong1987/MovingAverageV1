@@ -7,9 +7,6 @@ namespace cAlgo.Robots;
 
 [Robot(TimeZone = TimeZones.TokyoStandardTime, AccessRights = AccessRights.FullAccess, AddIndicators = false)]
 public class MovingAverageV1 : Robot {
-    [Parameter("策略模式", DefaultValue = StrategyModel.Strong)]
-    public StrategyModel Strategy { get; set; }
-
     [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 10.0, Step = 0.1, Group = "风控配置")]
     public double RiskPct { get; set; }
 
@@ -167,7 +164,7 @@ public class MovingAverageV1 : Robot {
     }
 
     private void HandleClosedBarSignal() {
-        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar(Strategy);
+        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar();
         if (!signalModel.HasData)
             return;
 

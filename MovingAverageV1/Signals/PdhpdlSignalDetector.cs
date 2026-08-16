@@ -24,9 +24,8 @@ public class PdhpdlSignalDetector {
         _minMaDistance = minMaDistance;
     }
 
-    public PdhpdlSignalModel DetectOnClosedBar(StrategyModel strategy) {
+    public PdhpdlSignalModel DetectOnClosedBar() {
         PdhpdlSignalModel signalModel = new();
-        signalModel.Strategy = strategy;
         if (_chartBars.Count < 2)
             return signalModel;
 

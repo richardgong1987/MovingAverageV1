@@ -27,8 +27,6 @@ public class PdhpdlSignalModel {
 
     public double SL { get; set; }
 
-    public StrategyModel Strategy { get; set; }
-
     public bool IsBigK { get; set; }
 
     // MarketStructure 到这根 K 线为止最后标出的结构点，及它的编号（第几个）。
