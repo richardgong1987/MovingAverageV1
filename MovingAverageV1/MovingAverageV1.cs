@@ -68,7 +68,9 @@ public class MovingAverageV1 : Robot {
     private PdhpdlSignalDetector _signalDetector;
     private PdhpdlSignalMarkers _signalMarkers;
     private PdhpdlOrderExecutor _orderExecutor;
+
     private PdhpdlTradeCsvLogger _csvLogger;
+
     // 图表周期的 ATR，只服务 IsBigK（比较图表 K 线自身的振幅）。
     private Atr14Series _atr14;
 
@@ -138,10 +140,7 @@ public class MovingAverageV1 : Robot {
     }
 
     private PdhpdlRiskGuardConfigModel BuildRiskGuardConfig() {
-        return new PdhpdlRiskGuardConfigModel {
-            RiskSafetyFactor = RiskSafetyFactor,
-            MinStopLossPips = MinStopLossPips
-        };
+        return new PdhpdlRiskGuardConfigModel { RiskSafetyFactor = RiskSafetyFactor, MinStopLossPips = MinStopLossPips };
     }
 
     protected override void OnBar() {
