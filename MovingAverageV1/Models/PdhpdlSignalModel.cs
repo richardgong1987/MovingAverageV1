@@ -39,14 +39,15 @@ public class PdhpdlSignalModel {
 
     public DateTime RmaSourceBarTime { get; set; }
 
-    public double FastRma { get; set; }
+    // 蓝线 60m RMA13、紫线 60m RMA55，同一个周期上的同一根已收 K 线。
+    public double BlueRma { get; set; }
 
-    public double SlowRma { get; set; }
+    public double PurpleRma { get; set; }
 
-    // 紫线（45m RMA13）。它和快慢线不在同一个周期上，取的是自己周期上最后一根已收 K 线。
-    public double MidRma { get; set; }
+    // 黄线 45m RMA13。它和蓝紫线不在同一个周期上，取的是自己周期上最后一根已收 K 线。
+    public double YellowRma { get; set; }
 
-    // |FastRma - SlowRma| / ATR14，都取均线来源周期（默认 120m）上同一根已收 K 线。
+    // |BlueRma - PurpleRma| / ATR14，都取蓝紫线所在周期（60m）上同一根已收 K 线。
     // 除以 ATR 是为了把间距换算成「几个 ATR」，阈值才能跨品种、跨波动率通用。ATR 缺失时为 NaN。
     public double MaDistance { get; set; }
 

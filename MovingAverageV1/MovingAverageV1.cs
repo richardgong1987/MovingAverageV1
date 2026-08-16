@@ -40,18 +40,19 @@ public class MovingAverageV1 : Robot {
     [Parameter("输出文件名", DefaultValue = "MovingAverageV1-trades.csv", Group = "开发调试")]
     public string FileName { get; set; }
 
-    [Parameter("均线周期 RMA 1 (快,蓝线)", DefaultValue = 13, MinValue = 1, Group = "均线")]
-    public int MaFastPeriod { get; set; }
+    // 三条线一律按颜色叫，和图上画出来的一一对应。周期都写死在 RmaLinesConfigModel 里：
+    // 蓝、紫跑 60 分钟，黄跑 45 分钟；这里只放各自的均线周期。
+    // 方向过滤看的是三线排列：多头 黄 > 蓝 > 紫，空头反过来。
+    [Parameter("均线周期 蓝线 (60分钟)", DefaultValue = 13, MinValue = 1, Group = "均线")]
+    public int RMABluePeriod { get; set; }
 
-    [Parameter("均线周期 RMA 2 (慢,黄线)", DefaultValue = 55, MinValue = 1, Group = "均线")]
-    public int MaSlowPeriod { get; set; }
+    [Parameter("均线周期 紫线 (60分钟)", DefaultValue = 55, MinValue = 1, Group = "均线")]
+    public int RMAPurplePeriod { get; set; }
 
-    // 紫线固定跑在 45 分钟周期上（RmaLinesConfigModel.MidTimeFrameMinutes），和快慢线的周期无关。
-    // 方向过滤看的是三线排列：多头 紫 > 蓝 > 黄，空头反过来。
-    [Parameter("均线周期 RMA 3 (中,紫色,45分钟)", DefaultValue = 13, MinValue = 1, Group = "均线")]
-    public int MaMidPeriod { get; set; }
+    [Parameter("均线周期 黄线 (45分钟)", DefaultValue = 13, MinValue = 1, Group = "均线")]
+    public int RMAYellowPeriod { get; set; }
 
-    // MaDistance = |快线 - 慢线| / ATR14 必须大于这个系数才开仓，两边都取均线周期上的同一根已收 K 线。
+    // MaDistance = |蓝线 - 紫线| / ATR14 必须大于这个系数才开仓，两边都取 60 分钟上的同一根已收 K 线。
     [Parameter("X系数 (0=关闭)", DefaultValue = 0.0, MinValue = 0.0, Step = 0.1, Group = "均线")]
     public double X { get; set; }
 
@@ -71,7 +72,7 @@ public class MovingAverageV1 : Robot {
     // 图表周期的 ATR，只服务 IsBigK（比较图表 K 线自身的振幅）。
     private Atr14Series _atr14;
 
-    // 快/慢线所在周期的 ATR，只服务 MaDistance。它和图表周期的 ATR 周期不同，不能共用一个实例。
+    // 蓝紫线所在周期（60m）的 ATR，只服务 MaDistance。它和图表周期的 ATR 周期不同，不能共用一个实例。
     private Atr14Series _rmaSourceAtr14;
     private MarketStructure _marketStructure;
 
@@ -81,7 +82,7 @@ public class MovingAverageV1 : Robot {
         _marketStructure = new MarketStructure(Chart, Bars, ZigZagLength);
         _marketStructure.Update();
         _atr14 = new Atr14Series(Indicators, Bars);
-        _rmaSourceAtr14 = new Atr14Series(Indicators, _rmaSeries.Fast.SourceBars);
+        _rmaSourceAtr14 = new Atr14Series(Indicators, _rmaSeries.Blue.SourceBars);
 
         // 同一个闸门实例两边共用：detector 侧读它决定放不放行，executor 侧在仓位真的开出来时写它。
         var entryGate = new ConsecutiveEntryGate();
@@ -110,7 +111,7 @@ public class MovingAverageV1 : Robot {
     }
 
     private RmaLinesConfigModel BuildMovingAverageConfig() {
-        return new RmaLinesConfigModel { FastPeriod = MaFastPeriod, SlowPeriod = MaSlowPeriod, MidPeriod = MaMidPeriod };
+        return new RmaLinesConfigModel { BluePeriod = RMABluePeriod, PurplePeriod = RMAPurplePeriod, YellowPeriod = RMAYellowPeriod };
     }
 
     private void DrawRmaLines() {

@@ -19,10 +19,10 @@ public class MainBiz {
             return false;
 
         /**
-         * 作空要的是空头排列：紫 < 蓝 < 黄，也就是 45M RMA13 < 60M RMA13 < 60M RMA55。
+         * 作空要的是空头排列：黄 < 蓝 < 紫，也就是 45M RMA13 < 60M RMA13 < 60M RMA55。
          * 排不出来就是趋势没站在空头这一边，跳过。
          */
-        if (!RmaUtils.IsBearishStack(signalModel.MidRma, signalModel.FastRma, signalModel.SlowRma))
+        if (!RmaUtils.IsBearishStack(signalModel.YellowRma, signalModel.BlueRma, signalModel.PurpleRma))
             return false;
 
         if (!MatchesShortPattern(signalModel, scanResult, current, previous, earlier))
@@ -63,10 +63,10 @@ public class MainBiz {
             return false;
 
         /**
-         * 作多要的是多头排列：紫 > 蓝 > 黄，也就是 45M RMA13 > 60M RMA13 > 60M RMA55。
+         * 作多要的是多头排列：黄 > 蓝 > 紫，也就是 45M RMA13 > 60M RMA13 > 60M RMA55。
          * 排不出来就是趋势没站在多头这一边，跳过。
          */
-        if (!RmaUtils.IsBullishStack(signalModel.MidRma, signalModel.FastRma, signalModel.SlowRma)) {
+        if (!RmaUtils.IsBullishStack(signalModel.YellowRma, signalModel.BlueRma, signalModel.PurpleRma)) {
             return false;
         }
 
@@ -99,8 +99,8 @@ public class MainBiz {
         return false;
     }
 
-    // 快慢线贴在一起时行情多半在震荡，形态信号在那里的胜率很差。用 ATR 归一化后的间距
-    // MaDistance = |FastRma - SlowRma| / ATR 必须大于 X 系数才放行。
+    // 蓝紫线贴在一起时行情多半在震荡，形态信号在那里的胜率很差。用 ATR 归一化后的间距
+    // MaDistance = |BlueRma - PurpleRma| / ATR 必须大于 X 系数才放行。
     // X = 0 表示这道闸门关闭；此时 ATR 缺失也不该把所有交易挡掉。
     private static bool IsMaDistanceSatisfied(PdhpdlSignalModel signalModel) {
         if (signalModel.MinMaDistance <= 0.0)
@@ -112,15 +112,15 @@ public class MainBiz {
         return signalModel.MaDistance > signalModel.MinMaDistance;
     }
 
-    // 信号必须长在快线上：构成这个形态的 K 线里，至少有一根把快线夹在自己的高低点之间（影线算数）。
+    // 信号必须长在蓝线上：构成这个形态的 K 线里，至少有一根把蓝线夹在自己的高低点之间（影线算数）。
     // 传进来的只能是这个形态自己用到的那几根 —— pinbar 一根、吞没两根、分型和孕线三根。
     // 笼统地拿三根去判断是错的：单根形态会被隔壁那根的触碰放行。
-    private static bool AnyTouchesFastRma(PdhpdlSignalModel signalModel, params CandleModel[] patternCandles) {
-        if (double.IsNaN(signalModel.FastRma))
+    private static bool AnyTouchesBlueRma(PdhpdlSignalModel signalModel, params CandleModel[] patternCandles) {
+        if (double.IsNaN(signalModel.BlueRma))
             return false;
 
         foreach (CandleModel candle in patternCandles) {
-            if (candle.Low <= signalModel.FastRma && candle.High >= signalModel.FastRma)
+            if (candle.Low <= signalModel.BlueRma && candle.High >= signalModel.BlueRma)
                 return true;
         }
 
@@ -132,7 +132,7 @@ public class MainBiz {
         if (scanResult.FractalTop != SignalSideModel.Sell || !Utils.AnyBarIsShort(current))
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "S_Top";
@@ -145,7 +145,7 @@ public class MainBiz {
         if (scanResult.HaramiSingle != SignalSideModel.Sell)
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "S_Harami";
@@ -158,7 +158,7 @@ public class MainBiz {
         if (scanResult.Engulf != SignalSideModel.Sell)
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current, previous))
+        if (!AnyTouchesBlueRma(signalModel, current, previous))
             return false;
 
         signalModel.Label = "S_Eng";
@@ -170,7 +170,7 @@ public class MainBiz {
         if (scanResult.Pinbar != SignalSideModel.Sell)
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current))
+        if (!AnyTouchesBlueRma(signalModel, current))
             return false;
 
         signalModel.Label = "S_Pin";
@@ -183,7 +183,7 @@ public class MainBiz {
         if (scanResult.FractalBottom != SignalSideModel.Buy || !Utils.AnyBarIsLong(current))
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "L_Bot";
@@ -196,7 +196,7 @@ public class MainBiz {
         if (scanResult.HaramiSingle != SignalSideModel.Buy)
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current, previous, earlier))
+        if (!AnyTouchesBlueRma(signalModel, current, previous, earlier))
             return false;
 
         signalModel.Label = "L_Harami";
@@ -209,7 +209,7 @@ public class MainBiz {
         if (scanResult.Engulf != SignalSideModel.Buy)
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current, previous))
+        if (!AnyTouchesBlueRma(signalModel, current, previous))
             return false;
 
         signalModel.Label = "L_Eng";
@@ -221,7 +221,7 @@ public class MainBiz {
         if (scanResult.Pinbar != SignalSideModel.Buy)
             return false;
 
-        if (!AnyTouchesFastRma(signalModel, current))
+        if (!AnyTouchesBlueRma(signalModel, current))
             return false;
 
         signalModel.Label = "L_Pin";

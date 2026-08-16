@@ -6,22 +6,16 @@ using cAlgo.API.Internals;
 namespace cAlgo.Robots;
 
 // One Welles-Wilder (Pine ta.rma) moving average together with the bars it is computed on.
-// The timeframe belongs to the line, not to the overlay as a whole: the signal pair and the
-// mid line each pick their own.
+// The timeframe belongs to the line, not to the overlay as a whole: blue/purple and yellow each
+// pick their own, and none of them is the chart's timeframe.
 public class RmaSeries {
     private readonly MovingAverage _movingAverage;
 
-    public RmaSeries(MarketData marketData, IIndicatorsAccessor indicators, string symbolName, Bars chartBars,
-        MovingAverageSourceModel source, int period, int higherTimeFrameMinutes) {
-        Source = source;
-        SourceBars = source == MovingAverageSourceModel.ChartTimeFrame
-            ? chartBars
-            : marketData.GetBars(ToTimeFrame(higherTimeFrameMinutes), symbolName);
+    public RmaSeries(MarketData marketData, IIndicatorsAccessor indicators, string symbolName, int period, int timeFrameMinutes) {
+        SourceBars = marketData.GetBars(ToTimeFrame(timeFrameMinutes), symbolName);
 
         _movingAverage = indicators.MovingAverage(SourceBars.ClosePrices, period, MovingAverageType.WilderSmoothing);
     }
-
-    public MovingAverageSourceModel Source { get; }
 
     public Bars SourceBars { get; }
 
@@ -48,7 +42,7 @@ public class RmaSeries {
         return minutes switch {
             45 => TimeFrame.Minute45,
             60 => TimeFrame.Hour,
-            _ => throw new ArgumentOutOfRangeException(nameof(minutes), minutes, "Unsupported higher-timeframe minutes for RmaSeries.")
+            _ => throw new ArgumentOutOfRangeException(nameof(minutes), minutes, "Unsupported timeframe minutes for RmaSeries.")
         };
     }
 }

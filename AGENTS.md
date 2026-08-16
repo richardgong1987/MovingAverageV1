@@ -3,7 +3,7 @@
 ## Project
 
 `MovingAverageV1` is a cTrader/cAlgo cBot written in C#, targeting `.NET 6`. It trades
-candlestick reversal patterns (the "HanJin 26" signal set) filtered by a dual-RMA trend
+candlestick reversal patterns (the "HanJin 26" signal set) filtered by a three-RMA trend
 direction, sizes every order from a fixed percentage of account equity, exits at a fixed R
 multiple, and logs each trade to CSV.
 
@@ -19,7 +19,7 @@ highs and lows; do not infer behaviour from it.
 
 | Step | Where | Rule |
 | --- | --- | --- |
-| Direction filter | `MainBiz`, `RmaUtils` | Three-line stack: longs need mid > fast > slow (45m RMA13 > 60m RMA13 > 60m RMA55), shorts the reverse |
+| Direction filter | `MainBiz`, `RmaUtils` | Three-line stack: longs need yellow > blue > purple (45m RMA13 > 60m RMA13 > 60m RMA55), shorts the reverse |
 | Entry signal | `HanJinSignals26` → `MainBiz` | Candlestick patterns on the last **closed** bar (pinbar, engulfing, fractal, harami) |
 | Stop | `PdhpdlOrderPlanner` | The pattern's own SL price, pushed out by `StopOffsetTicks` |
 | Sizing | `PdhpdlOrderPlanner` + `PdhpdlRiskGuard` | `RiskPct` of equity, converted through the symbol's pip value |
@@ -35,7 +35,8 @@ There is no partial/two-stage exit: reaching the take profit closes the whole po
   candlestick pattern library (`HanJinSignals26`).
 - `MovingAverageV1/Biz/`: `MainBiz` — turns a scanned pattern set into a long/short decision.
 - `MovingAverageV1/Indicators/`: indicator series the strategy reads (`Atr14Series`,
-  `RmaSeriesSet` — fast/slow pair plus the shorter-timeframe mid line, each a single `RmaSeries`)
+  `RmaSeriesSet` — the blue/purple/yellow lines, each a single `RmaSeries`, named after the
+  colour they are drawn in)
   plus chart-only ports that feed nothing back (`MarketStructure`).
 - `MovingAverageV1/Orders/`: pure order planning (`PdhpdlOrderPlanner`) and cAlgo order
   execution (`PdhpdlOrderExecutor`).

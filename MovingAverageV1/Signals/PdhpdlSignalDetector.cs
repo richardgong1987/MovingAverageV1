@@ -58,9 +58,9 @@ public class PdhpdlSignalDetector {
     }
 
     private void FillRmaData(PdhpdlSignalModel signalModel) {
-        signalModel.FastRma = double.NaN;
-        signalModel.SlowRma = double.NaN;
-        signalModel.MidRma = double.NaN;
+        signalModel.BlueRma = double.NaN;
+        signalModel.PurpleRma = double.NaN;
+        signalModel.YellowRma = double.NaN;
         signalModel.MaDistance = double.NaN;
         signalModel.MinMaDistance = _minMaDistance;
 
@@ -69,18 +69,18 @@ public class PdhpdlSignalDetector {
 
         signalModel.HasRmaData = true;
         signalModel.RmaSourceBarTime = trend.SourceBarTime;
-        signalModel.FastRma = trend.Fast;
-        signalModel.SlowRma = trend.Slow;
-        signalModel.MidRma = trend.Mid;
+        signalModel.BlueRma = trend.Blue;
+        signalModel.PurpleRma = trend.Purple;
+        signalModel.YellowRma = trend.Yellow;
         signalModel.MaDistance = CalculateMaDistance(trend);
     }
 
     // ATR 必须取均线来源周期上的同一根已收 K 线：拿图表周期的 ATR 去除以高周期均线的间距，
     // 分子分母量纲不同，算出来的倍数没有意义。
     private double CalculateMaDistance(RmaTrendReadingModel trend) {
-        if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.TrendConfirmedIndex, out double atr))
+        if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.BluePurpleConfirmedIndex, out double atr))
             return double.NaN;
 
-        return Math.Abs(trend.Fast - trend.Slow) / atr;
+        return Math.Abs(trend.Blue - trend.Purple) / atr;
     }
 }
