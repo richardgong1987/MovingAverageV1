@@ -46,13 +46,16 @@ public class MovingAverageV1 : Robot {
     [Parameter("均线来源", DefaultValue = MovingAverageSourceModel.HigherTimeFrame, Group = "均线")]
     public MovingAverageSourceModel MaSource { get; set; }
 
-    [Parameter("均线周期 RMA 1 (快)", DefaultValue = 13, MinValue = 1, Group = "均线")]
+    [Parameter("均线周期 RMA 1 (快,蓝线)", DefaultValue = 13, MinValue = 1, Group = "均线")]
     public int MaFastPeriod { get; set; }
 
-    [Parameter("均线周期 RMA 2 (慢)", DefaultValue = 55, MinValue = 1, Group = "均线")]
+    [Parameter("均线周期 RMA 2 (慢,黄线)", DefaultValue = 55, MinValue = 1, Group = "均线")]
     public int MaSlowPeriod { get; set; }
 
-    [Parameter("均线周期(分钟)", DefaultValue = 120, MinValue = 1, Group = "均线")]
+    [Parameter("均线周期 RMA 3 (中,紫色)", DefaultValue = 13, MinValue = 1, Group = "均线")]
+    public int MaMidPeriod { get; set; }
+
+    [Parameter("均线周期(分钟)", DefaultValue = 60, MinValue = 1, Group = "均线")]
     public int MaTimeFrameMinutes { get; set; }
 
     // MaDistance = |快线 - 慢线| / ATR14 必须大于这个系数才开仓，两边都取均线周期上的同一根已收 K 线。
