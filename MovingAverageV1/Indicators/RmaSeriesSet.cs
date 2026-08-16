@@ -33,8 +33,7 @@ public class RmaSeriesSet {
     public bool TryReadConfirmedTrend(out RmaTrendReadingModel reading) {
         reading = null;
 
-        if (!Blue.TryGetConfirmedValue(out double blueRma) ||
-            !Purple.TryGetConfirmedValue(out double purpleRma) ||
+        if (!Blue.TryGetConfirmedValue(out double blueRma) || !Purple.TryGetConfirmedValue(out double purpleRma) ||
             !Yellow.TryGetConfirmedValue(out double yellowRma))
             return false;
 
