@@ -35,7 +35,8 @@ There is no partial/two-stage exit: reaching the take profit closes the whole po
   candlestick pattern library (`HanJinSignals26`).
 - `MovingAverageV1/Biz/`: `MainBiz` — turns a scanned pattern set into a long/short decision.
 - `MovingAverageV1/Indicators/`: indicator series the strategy reads (`Atr14Series`,
-  `DualRmaSeries`) plus chart-only ports that feed nothing back (`MarketStructure`).
+  `DualRmaSeries`, built from single-line `RmaSeries`) plus chart-only ports that feed nothing
+  back (`MarketStructure`, the purple 45-minute mid `RmaSeries`).
 - `MovingAverageV1/Orders/`: pure order planning (`PdhpdlOrderPlanner`) and cAlgo order
   execution (`PdhpdlOrderExecutor`).
 - `MovingAverageV1/Risk/`: risk limits, trading-window rules, and position sizing.

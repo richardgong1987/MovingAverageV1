@@ -52,7 +52,10 @@ public class MovingAverageV1 : Robot {
     [Parameter("均线周期 RMA 2 (慢,黄线)", DefaultValue = 55, MinValue = 1, Group = "均线")]
     public int MaSlowPeriod { get; set; }
 
-    [Parameter("均线周期 RMA 3 (中,紫色)", DefaultValue = 13, MinValue = 1, Group = "均线")]
+    // Chart-only reference line: on the 45-minute timeframe (RmaLinesConfigModel.MidTimeFrameMinutes),
+    // independent of the fast/slow pair's timeframe. Follows「均线来源」like the pair, so it only reads
+    // 45m while the source is HigherTimeFrame. It feeds no signal.
+    [Parameter("均线周期 RMA 3 (中,紫色,45分钟)", DefaultValue = 13, MinValue = 1, Group = "均线")]
     public int MaMidPeriod { get; set; }
 
     [Parameter("均线周期(分钟)", DefaultValue = 60, MinValue = 1, Group = "均线")]
@@ -63,7 +66,8 @@ public class MovingAverageV1 : Robot {
     public double X { get; set; }
 
     private DualRmaSeries _rmaSeries;
-    private DualRmaLines _movingAverageLines;
+    private RmaSeries _midRmaSeries;
+    private RmaLines _movingAverageLines;
 
     private PdhpdlSignalDetector _signalDetector;
     private PdhpdlSignalMarkers _signalMarkers;
@@ -80,7 +84,7 @@ public class MovingAverageV1 : Robot {
 
     protected override void OnStart() {
         LaunchDebug();
-        DrawDualRmaLines();
+        DrawRmaLines();
         _marketStructure = new MarketStructure(Chart, Bars);
         _marketStructure.Update();
         _atr14 = new Atr14Series(Indicators, Bars);
@@ -112,16 +116,22 @@ public class MovingAverageV1 : Robot {
         }
     }
 
-    private DualRmaLinesConfigModel BuildMovingAverageConfig() {
-        return new DualRmaLinesConfigModel {
-            Source = MaSource, FastPeriod = MaFastPeriod, SlowPeriod = MaSlowPeriod, HigherTimeFrameMinutes = MaTimeFrameMinutes
+    private RmaLinesConfigModel BuildMovingAverageConfig() {
+        return new RmaLinesConfigModel {
+            Source = MaSource,
+            FastPeriod = MaFastPeriod,
+            SlowPeriod = MaSlowPeriod,
+            HigherTimeFrameMinutes = MaTimeFrameMinutes,
+            MidPeriod = MaMidPeriod
         };
     }
 
-    private void DrawDualRmaLines() {
-        DualRmaLinesConfigModel rmaConfig = BuildMovingAverageConfig();
+    private void DrawRmaLines() {
+        RmaLinesConfigModel rmaConfig = BuildMovingAverageConfig();
         _rmaSeries = new DualRmaSeries(MarketData, Indicators, SymbolName, Bars, rmaConfig);
-        _movingAverageLines = new DualRmaLines(Chart, Bars, _rmaSeries, rmaConfig.Thickness);
+        _midRmaSeries = new RmaSeries(MarketData, Indicators, SymbolName, Bars, rmaConfig.Source, rmaConfig.MidPeriod,
+            rmaConfig.MidTimeFrameMinutes);
+        _movingAverageLines = new RmaLines(Chart, Bars, _rmaSeries, _midRmaSeries, rmaConfig.Thickness);
         _movingAverageLines.Draw();
     }
 

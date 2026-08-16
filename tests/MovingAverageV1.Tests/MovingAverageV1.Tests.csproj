@@ -30,7 +30,7 @@
     <CAlgoBoundFile Include="$(RobotRoot)OrderLogger\PdhpdlTradeCsvLogger.cs" />
     <CAlgoBoundFile Include="$(RobotRoot)Signals\PdhpdlSignalDetector.cs" />
     <CAlgoBoundFile Include="$(RobotRoot)Models\CAlgoSymbolModel.cs" />   <!-- adapts Symbol; tests fake IPdhpdlSymbolModel -->
-    <CAlgoBoundFile Include="$(RobotRoot)Models\DualRmaLinesConfigModel.cs" />
+    <CAlgoBoundFile Include="$(RobotRoot)Models\RmaLinesConfigModel.cs" />
   </ItemGroup>
 
   <ItemGroup>
