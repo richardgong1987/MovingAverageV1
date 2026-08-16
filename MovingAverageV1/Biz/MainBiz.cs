@@ -18,12 +18,11 @@ public class MainBiz {
         if (!IsMaDistanceSatisfied(signalModel))
             return false;
 
-        RmaPositionModel rmaPosition = RmaUtils.GetFastToSlowPosition(signalModel.FastRma, signalModel.SlowRma);
-
         /**
-         * 蓝线在上面，作多。但这里是专门作空的。所以就跳过
+         * 作空要的是空头排列：紫 < 蓝 < 黄，也就是 45M RMA13 < 60M RMA13 < 60M RMA55。
+         * 排不出来就是趋势没站在空头这一边，跳过。
          */
-        if (rmaPosition == RmaPositionModel.FastAboveSlow)
+        if (!RmaUtils.IsBearishStack(signalModel.MidRma, signalModel.FastRma, signalModel.SlowRma))
             return false;
 
         if (!MatchesShortPattern(signalModel, scanResult, current, previous, earlier))
@@ -63,12 +62,11 @@ public class MainBiz {
         if (!IsMaDistanceSatisfied(signalModel))
             return false;
 
-        RmaPositionModel rmaPosition = RmaUtils.GetFastToSlowPosition(signalModel.FastRma, signalModel.SlowRma);
-
         /**
-         * 蓝线在下面，代表，只作空。这但这里都是作多的，所以就不走这里的逻辑了。
+         * 作多要的是多头排列：紫 > 蓝 > 黄，也就是 45M RMA13 > 60M RMA13 > 60M RMA55。
+         * 排不出来就是趋势没站在多头这一边，跳过。
          */
-        if (rmaPosition == RmaPositionModel.FastBelowSlow) {
+        if (!RmaUtils.IsBullishStack(signalModel.MidRma, signalModel.FastRma, signalModel.SlowRma)) {
             return false;
         }
 

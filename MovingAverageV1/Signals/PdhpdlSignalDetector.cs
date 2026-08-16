@@ -60,6 +60,7 @@ public class PdhpdlSignalDetector {
     private void FillRmaData(PdhpdlSignalModel signalModel) {
         signalModel.FastRma = double.NaN;
         signalModel.SlowRma = double.NaN;
+        signalModel.MidRma = double.NaN;
         signalModel.MaDistance = double.NaN;
         signalModel.MinMaDistance = _minMaDistance;
 
@@ -70,6 +71,7 @@ public class PdhpdlSignalDetector {
         signalModel.RmaSourceBarTime = trend.SourceBarTime;
         signalModel.FastRma = trend.Fast;
         signalModel.SlowRma = trend.Slow;
+        signalModel.MidRma = trend.Mid;
         signalModel.MaDistance = CalculateMaDistance(trend);
     }
 

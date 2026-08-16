@@ -15,8 +15,9 @@ public class RmaLinesConfigModel {
 
     public int MidPeriod { get; set; } = 13;
 
-    // The mid line reads a shorter timeframe than the trading pair on purpose — it is a visual
-    // reference only, so its timeframe is fixed here rather than exposed as a cBot parameter.
+    // The mid line reads a shorter timeframe than the fast/slow pair on purpose: it is the first
+    // of the three to turn, which is what makes the stacking rule mean something. Fixed here
+    // rather than exposed as a cBot parameter — only the period is tunable.
     public int MidTimeFrameMinutes { get; set; } = 45;
 
     public int Thickness { get; set; } = 3;

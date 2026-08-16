@@ -43,6 +43,9 @@ public class PdhpdlSignalModel {
 
     public double SlowRma { get; set; }
 
+    // 紫线（45m RMA13）。它和快慢线不在同一个周期上，取的是自己周期上最后一根已收 K 线。
+    public double MidRma { get; set; }
+
     // |FastRma - SlowRma| / ATR14，都取均线来源周期（默认 120m）上同一根已收 K 线。
     // 除以 ATR 是为了把间距换算成「几个 ATR」，阈值才能跨品种、跨波动率通用。ATR 缺失时为 NaN。
     public double MaDistance { get; set; }

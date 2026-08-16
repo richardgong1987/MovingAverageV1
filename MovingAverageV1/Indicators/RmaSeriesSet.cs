@@ -4,10 +4,11 @@ using cAlgo.API.Internals;
 namespace cAlgo.Robots;
 
 // The three RMA lines the cBot runs, built from one config:
-//   Fast / Slow - the trend pair, both on the same timeframe. Direction filtering and MaDistance
-//                 read them together, so they must always be taken from the same closed bar.
-//   Mid         - a reference line on its own timeframe (45m by default). Drawn only; no rule
-//                 reads it.
+//   Fast / Slow - the pair on the configured trend timeframe. MaDistance measures the gap
+//                 between them, so they must always be taken from the same closed bar.
+//   Mid         - on its own, shorter timeframe (45m by default). It has its own closed bar,
+//                 which is the point: it reacts first.
+// The direction filter compares all three (RmaUtils.IsBullishStack / IsBearishStack).
 public class RmaSeriesSet {
     public RmaSeriesSet(MarketData marketData, IIndicatorsAccessor indicators, string symbolName, Bars chartBars,
         RmaLinesConfigModel config) {
@@ -29,16 +30,18 @@ public class RmaSeriesSet {
     // them — the ATR behind MaDistance — must use this same index.
     public int TrendConfirmedIndex => Fast.ConfirmedIndex;
 
-    // Both trend values off the last closed bar of their shared timeframe. Either one missing
-    // means there is no usable reading: a rule that compared one live value against one stale
-    // value would be comparing different bars.
+    // All three lines off the last closed bar of their own timeframe. Any one of them missing
+    // means there is no usable reading at all: the direction filter compares all three, so a
+    // partial reading could only ever produce a wrong answer, never a cautious one.
     public bool TryReadConfirmedTrend(out RmaTrendReadingModel reading) {
         reading = null;
 
-        if (!Fast.TryGetConfirmedValue(out double fastRma) || !Slow.TryGetConfirmedValue(out double slowRma))
+        if (!Fast.TryGetConfirmedValue(out double fastRma) ||
+            !Slow.TryGetConfirmedValue(out double slowRma) ||
+            !Mid.TryGetConfirmedValue(out double midRma))
             return false;
 
-        reading = new RmaTrendReadingModel(Fast.SourceBars.OpenTimes[TrendConfirmedIndex], fastRma, slowRma);
+        reading = new RmaTrendReadingModel(Fast.SourceBars.OpenTimes[TrendConfirmedIndex], fastRma, slowRma, midRma);
         return true;
     }
 }

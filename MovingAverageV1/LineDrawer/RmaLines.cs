@@ -4,9 +4,10 @@ using cAlgo.API.Internals;
 
 namespace cAlgo.Robots;
 
-// C# port of the "MA 1 + MA 2" Pine indicator, plus a third reference line:
-//   MA 1 (fast) blue, MA 2 (slow) yellow — the pair the strategy trades off,
-//   MA 3 (mid)  purple — a shorter-timeframe RMA drawn for context only.
+// C# port of the "MA 1 + MA 2" Pine indicator, plus a third line:
+//   MA 1 (fast) blue, MA 2 (slow) yellow — the pair on the trend timeframe,
+//   MA 3 (mid)  purple — the shorter-timeframe RMA.
+// All three feed the direction filter; how they stack decides which way the bot may trade.
 public class RmaLines {
     private static readonly Color FastColor = Color.Blue;
     private static readonly Color SlowColor = Color.Yellow;

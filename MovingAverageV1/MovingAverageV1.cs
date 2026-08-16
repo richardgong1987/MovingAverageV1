@@ -46,6 +46,8 @@ public class MovingAverageV1 : Robot {
     [Parameter("均线周期 RMA 2 (慢,黄线)", DefaultValue = 55, MinValue = 1, Group = "均线")]
     public int MaSlowPeriod { get; set; }
 
+    // 紫线固定跑在 45 分钟周期上（RmaLinesConfigModel.MidTimeFrameMinutes），和快慢线的周期无关。
+    // 方向过滤看的是三线排列：多头 紫 > 蓝 > 黄，空头反过来。
     [Parameter("均线周期 RMA 3 (中,紫色,45分钟)", DefaultValue = 13, MinValue = 1, Group = "均线")]
     public int MaMidPeriod { get; set; }
 
