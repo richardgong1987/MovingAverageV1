@@ -8,13 +8,13 @@ namespace cAlgo.Robots;
 // OnBar fires when a new bar opens, so the closed bar is Count - 2.
 public class PdhpdlSignalDetector {
     private readonly Bars _chartBars;
-    private readonly DualRmaSeries _rmaSeries;
+    private readonly RmaSeriesSet _rmaSeries;
     private readonly Atr14Series _rmaSourceAtr14;
     private readonly MarketStructure _marketStructure;
     private readonly ConsecutiveEntryGate _entryGate;
     private readonly double _minMaDistance;
 
-    public PdhpdlSignalDetector(Bars chartBars, DualRmaSeries rmaSeries, Atr14Series rmaSourceAtr14, MarketStructure marketStructure,
+    public PdhpdlSignalDetector(Bars chartBars, RmaSeriesSet rmaSeries, Atr14Series rmaSourceAtr14, MarketStructure marketStructure,
         ConsecutiveEntryGate entryGate, double minMaDistance) {
         _chartBars = chartBars;
         _rmaSeries = rmaSeries;
@@ -63,22 +63,22 @@ public class PdhpdlSignalDetector {
         signalModel.MaDistance = double.NaN;
         signalModel.MinMaDistance = _minMaDistance;
 
-        if (!_rmaSeries.TryGetLastConfirmedValues(out DateTime sourceBarTime, out double fastRma, out double slowRma))
+        if (!_rmaSeries.TryReadConfirmedTrend(out RmaTrendReadingModel trend))
             return;
 
         signalModel.HasRmaData = true;
-        signalModel.RmaSourceBarTime = sourceBarTime;
-        signalModel.FastRma = fastRma;
-        signalModel.SlowRma = slowRma;
-        signalModel.MaDistance = CalculateMaDistance(fastRma, slowRma);
+        signalModel.RmaSourceBarTime = trend.SourceBarTime;
+        signalModel.FastRma = trend.Fast;
+        signalModel.SlowRma = trend.Slow;
+        signalModel.MaDistance = CalculateMaDistance(trend);
     }
 
     // ATR 必须取均线来源周期上的同一根已收 K 线：拿图表周期的 ATR 去除以高周期均线的间距，
     // 分子分母量纲不同，算出来的倍数没有意义。
-    private double CalculateMaDistance(double fastRma, double slowRma) {
-        if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.ConfirmedIndex, out double atr))
+    private double CalculateMaDistance(RmaTrendReadingModel trend) {
+        if (!_rmaSourceAtr14.TryGetValue(_rmaSeries.TrendConfirmedIndex, out double atr))
             return double.NaN;
 
-        return Math.Abs(fastRma - slowRma) / atr;
+        return Math.Abs(trend.Fast - trend.Slow) / atr;
     }
 }

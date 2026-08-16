@@ -14,11 +14,11 @@ public class RmaLines {
 
     private readonly List<RmaLine> _lines;
 
-    public RmaLines(Chart chart, Bars chartBars, DualRmaSeries signalPair, RmaSeries midSeries, int thickness) {
+    public RmaLines(Chart chart, Bars chartBars, RmaSeriesSet rmaSeries, int thickness) {
         _lines = new List<RmaLine> {
-            new RmaLine(chart, chartBars, "FAST", signalPair.Fast, FastColor, thickness),
-            new RmaLine(chart, chartBars, "SLOW", signalPair.Slow, SlowColor, thickness),
-            new RmaLine(chart, chartBars, "MID", midSeries, MidColor, thickness)
+            new RmaLine(chart, chartBars, "FAST", rmaSeries.Fast, FastColor, thickness),
+            new RmaLine(chart, chartBars, "SLOW", rmaSeries.Slow, SlowColor, thickness),
+            new RmaLine(chart, chartBars, "MID", rmaSeries.Mid, MidColor, thickness)
         };
     }
 

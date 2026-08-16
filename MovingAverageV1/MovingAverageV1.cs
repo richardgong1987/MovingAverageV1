@@ -57,8 +57,7 @@ public class MovingAverageV1 : Robot {
     [Parameter("ZigZag 长度", DefaultValue = 16, MinValue = 1, Group = "市场结构")]
     public int ZigZagLength { get; set; }
 
-    private DualRmaSeries _rmaSeries;
-    private RmaSeries _midRmaSeries;
+    private RmaSeriesSet _rmaSeries;
     private RmaLines _movingAverageLines;
 
     private PdhpdlSignalDetector _signalDetector;
@@ -70,7 +69,7 @@ public class MovingAverageV1 : Robot {
     // 图表周期的 ATR，只服务 IsBigK（比较图表 K 线自身的振幅）。
     private Atr14Series _atr14;
 
-    // 均线来源周期（默认 120m）的 ATR，只服务 MaDistance。两者周期不同，不能共用一个实例。
+    // 快/慢线所在周期的 ATR，只服务 MaDistance。它和图表周期的 ATR 周期不同，不能共用一个实例。
     private Atr14Series _rmaSourceAtr14;
     private MarketStructure _marketStructure;
 
@@ -80,7 +79,7 @@ public class MovingAverageV1 : Robot {
         _marketStructure = new MarketStructure(Chart, Bars, ZigZagLength);
         _marketStructure.Update();
         _atr14 = new Atr14Series(Indicators, Bars);
-        _rmaSourceAtr14 = new Atr14Series(Indicators, _rmaSeries.SourceBars);
+        _rmaSourceAtr14 = new Atr14Series(Indicators, _rmaSeries.Fast.SourceBars);
 
         // 同一个闸门实例两边共用：detector 侧读它决定放不放行，executor 侧在仓位真的开出来时写它。
         var entryGate = new ConsecutiveEntryGate();
@@ -114,10 +113,8 @@ public class MovingAverageV1 : Robot {
 
     private void DrawRmaLines() {
         RmaLinesConfigModel rmaConfig = BuildMovingAverageConfig();
-        _rmaSeries = new DualRmaSeries(MarketData, Indicators, SymbolName, Bars, rmaConfig);
-        _midRmaSeries = new RmaSeries(MarketData, Indicators, SymbolName, Bars, rmaConfig.Source, rmaConfig.MidPeriod,
-            rmaConfig.MidTimeFrameMinutes);
-        _movingAverageLines = new RmaLines(Chart, Bars, _rmaSeries, _midRmaSeries, rmaConfig.Thickness);
+        _rmaSeries = new RmaSeriesSet(MarketData, Indicators, SymbolName, Bars, rmaConfig);
+        _movingAverageLines = new RmaLines(Chart, Bars, _rmaSeries, rmaConfig.Thickness);
         _movingAverageLines.Draw();
     }
 

@@ -31,6 +31,19 @@ public class RmaSeries {
     // must use this same index, otherwise the two numbers describe different bars.
     public int ConfirmedIndex => SourceBars.Count - 2;
 
+    // The value on that closed bar. Not enough history, or an average still warming up, reads
+    // as NaN/Infinity — reported as "no value" rather than handed to the caller.
+    public bool TryGetConfirmedValue(out double value) {
+        value = double.NaN;
+
+        int confirmedIndex = ConfirmedIndex;
+        if (confirmedIndex < 0)
+            return false;
+
+        value = Values[confirmedIndex];
+        return !double.IsNaN(value) && !double.IsInfinity(value);
+    }
+
     private static TimeFrame ToTimeFrame(int minutes) {
         return minutes switch {
             1 => TimeFrame.Minute,
