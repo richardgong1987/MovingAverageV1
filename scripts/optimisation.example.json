@@ -1,0 +1,25 @@
+{
+  "_comment": "run_optimisation.py 的参数网格说明书样例。复制成 optimisation.json 再改。parameters 里的 name 必须与 MovingAverageV1.cs 里的 [Parameter] 属性名逐字一致；取值三选一：value(固定) / values(列表) / from-to-step(等差)。这份样例是 3 x 3 x 3 x 2 = 54 个组合。",
+
+  "symbol": "XAUUSD",
+  "period": "m15",
+  "start": "2025-01-01",
+  "end": "2025-12-31",
+
+  "parameters": {
+    "RMABluePeriod": { "type": "int", "values": [11, 13, 15] },
+    "RMAPurplePeriod": { "type": "int", "from": 45, "to": 65, "step": 10 },
+    "GapExpansionX": { "type": "double", "values": [0.05, 0.10, 0.20] },
+    "GapExpansionLookbackBars": { "type": "int", "values": [4, 8] },
+
+    "RMAYellowPeriod": { "type": "int", "value": 13 },
+    "ZigZagLength": { "type": "int", "value": 16 },
+    "TakeProfitR": { "type": "double", "value": 2.0 },
+    "RiskPct": { "type": "double", "value": 1.0 },
+    "StopOffsetTicks": { "type": "int", "value": 50 },
+    "MinStopLossPips": { "type": "double", "value": 5.0 },
+    "BreakevenTriggerR": { "type": "double", "value": 1.0 },
+    "BreakevenOffsetTicks": { "type": "int", "value": 50 },
+    "EntryModel": { "type": "string", "value": "Close" }
+  }
+}

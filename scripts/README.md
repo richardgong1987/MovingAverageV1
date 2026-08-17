@@ -203,6 +203,84 @@ python3 scripts/report_summary.py --dir <dir>     # specify the report directory
 > Note: the summary covers **all** report JSONs in the directory, including leftovers from
 > previous runs. To summarize only one batch, clear the old `*.json` from the directory first.
 
+## Parameter sweep (run_optimisation.py)
+
+The cTrader CLI has **no optimisation subcommand** — its verbs are `accounts`, `symbols`, `run`
+and `backtest`; Optimisation is desktop-GUI only. `run_optimisation.py` fills that gap the same
+way the GUI does internally: expand a parameter grid locally, run one `backtest` per
+combination, then rank the results.
+
+It reuses the whole `run_conditions.py` pipeline — same CLI command builder, same runner, same
+report directory. The only difference is where tasks come from:
+
+| | Task source | Question it answers |
+| --- | --- | --- |
+| `run_conditions.py` | backend parameter API | how do these known parameter sets perform? |
+| `run_optimisation.py` | local grid spec (JSON) | which parameter set is best? |
+
+```bash
+cp scripts/optimisation.example.json scripts/optimisation.json   # then edit the grid
+
+python3 scripts/run_optimisation.py --dry-run                    # how many combinations?
+python3 scripts/run_optimisation.py --max-passes 50 --jobs 4
+python3 scripts/run_optimisation.py --sort-by win_rate --min-trades 30
+```
+
+### Grid spec
+
+```json
+{
+  "symbol": "XAUUSD", "period": "m15",
+  "start": "2025-01-01", "end": "2025-12-31",
+  "parameters": {
+    "RMABluePeriod":   {"type": "int",    "values": [11, 13, 15]},
+    "RMAPurplePeriod": {"type": "int",    "from": 45, "to": 65, "step": 10},
+    "GapExpansionX":   {"type": "double", "values": [0.05, 0.10, 0.20]},
+    "TakeProfitR":     {"type": "double", "value": 2.0}
+  }
+}
+```
+
+Each entry's `name` must be the cBot's C# property name, and `type` follows the same rules as
+the parameter API (`double` / `int` / `bool` / `date`, anything else passed as text). Values are
+given one of three ways:
+
+- `value` — fixed; passed on every pass but not swept, so it is not a ranking column.
+- `values` — an explicit list.
+- `from` / `to` / `step` — an arithmetic range, inclusive of both ends (`step` defaults to 1).
+  Stepping uses `Decimal`, so `0.05` steps produce `0.15`, not `0.15000000000000002`.
+
+Combinations are the cartesian product of the swept entries, in spec order. `--max-passes N`
+randomly samples down to `N` when the full grid is bigger (fixed seed, so the same spec always
+picks the same subset; change it with `--seed`). Randomly, not by truncation — truncating the
+product drops a whole parameter's upper range.
+
+### Output
+
+Reports land in `~/Documents/trading_reports/` exactly as with a normal batch, named
+`p0001-XAUUSD-m15.json` etc. On top of that you get `optimisation_ranking.csv` (and the top 10
+printed to the console), one row per pass sorted best-first, with one column per swept
+parameter:
+
+```
+名次, pass, 盈利金额, 胜率%, 交易笔数, RMABluePeriod, RMAPurplePeriod, GapExpansionX
+1, p0007-XAUUSD-m15, 4821.5, 47.3, 132, 13, 55, 0.1
+```
+
+`--sort-by` accepts `net_profit` (default), `win_rate` or `total_trades` — the metrics
+`summary/metrics.py` reads out of the report JSON. `--min-trades N` drops passes with too few
+trades: a 66% win rate over 3 trades is noise, and left unfiltered it wins the ranking.
+
+### Practical notes
+
+- **The run clears `~/Documents/trading_reports/`** first, like any batch — a previous
+  `run_conditions.py` batch's reports are wiped (its zip archive lives one level up and is
+  safe). The sweep does not zip or upload; it is a working artefact for picking parameters.
+- Grid size explodes fast. Start with `--dry-run`, keep the first sweep coarse, and use
+  `DATA_MODE=m1` (`.env`) rather than ticks — then re-verify the top few passes with ticks.
+- `--jobs` carries the same caveat as in a normal batch (see above): opt-in, and check the
+  report count afterwards.
+
 ## Tunables
 
 Environment-related (edit in `.env` / `.env-prod`):
@@ -231,12 +309,14 @@ each part doing one thing and decoupled from the others:
 
 ```
 run_conditions.py     Backtest CLI entry point (composition root: parse_args + main)
+run_optimisation.py   Parameter-sweep CLI entry point (grid -> backtests -> ranking)
 report_summary.py     Chart CLI entry point (refresh final_report.png standalone)
 backtest/             Running backtests
   config.py           read .env, produce Config (account/paths/credentials/API url/capital)
   records.py          GET the parameter API -> raw parameter records                 [HTTP]
   parameters.py       a parameterField -> a CLI argument (value formatting by type)  [data]
   plan.py             parameter record -> backtest task (ConditionRow)
+  grid.py             grid spec -> backtest tasks (GridConditionRow); sweep only
   command.py          task + config -> cTrader CLI command; also writes conditions.json
   runner.py           run tasks sequentially/in parallel; generate the chart once at the end
 summary/              Summarizing results
@@ -245,6 +325,7 @@ summary/              Summarizing results
   chart.py            DataFrame -> two-panel bar chart PNG                       [presentation]
   table.py            DataFrame -> final_summary_report.csv                      [presentation]
   metadata.py         DataFrame -> metadata.json (machine-readable)              [presentation]
+  ranking.py          reports + swept values -> optimisation_ranking.csv         [presentation]
   report.py           scan dir -> summarize -> chart + csv (public: update_final_report)
 ```
 
