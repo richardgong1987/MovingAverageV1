@@ -7,25 +7,25 @@ namespace cAlgo.Robots;
 
 [Robot(TimeZone = TimeZones.TokyoStandardTime, AccessRights = AccessRights.FullAccess, AddIndicators = false)]
 public class MovingAverageV1 : Robot {
-    [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 10.0, Step = 0.1, Group = "风控配置")]
+    [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 15.0, Step = 0.1, Group = "风控配置")]
     public double RiskPct { get; set; }
 
     [Parameter("安全系数", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 1.0, Step = 0.05, Group = "风控配置")]
     public double RiskSafetyFactor { get; set; }
 
-    [Parameter("止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 1000, Group = "风控配置")]
+    [Parameter("止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 2000, Group = "风控配置")]
     public int StopOffsetTicks { get; set; }
 
     [Parameter("最小止损点数 (Pips)", DefaultValue = 5.0, MinValue = 0.0, Step = 0.1, Group = "风控配置")]
     public double MinStopLossPips { get; set; }
 
-    [Parameter("止盈目标", DefaultValue = 2.0, MinValue = 0.5, MaxValue = 20.0, Step = 0.1, Group = "风控配置")]
+    [Parameter("止盈目标", DefaultValue = 2.0, MinValue = 0.5, MaxValue = 30.0, Step = 0.1, Group = "风控配置")]
     public double TakeProfitR { get; set; }
 
-    [Parameter("保护止损触发R (0=关闭)", DefaultValue = 1.0, MinValue = 0.0, MaxValue = 20.0, Step = 0.1, Group = "风控配置")]
+    [Parameter("保护止损触发R (0=关闭)", DefaultValue = 1.0, MinValue = 0.0, MaxValue = 30.0, Step = 0.1, Group = "风控配置")]
     public double BreakevenTriggerR { get; set; }
 
-    [Parameter("保护止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 1000, Group = "风控配置")]
+    [Parameter("保护止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 2000, Group = "风控配置")]
     public int BreakevenOffsetTicks { get; set; }
 
     [Parameter("回撤开仓模式", DefaultValue = PdhpdlEntryModel.Close, Group = "风控配置")]
