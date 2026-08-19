@@ -1,0 +1,25 @@
+{
+  "_comment": "2024-01-01 ~ 2026-08-15 的三年窗口：用来看年度 fitness 过滤（AnnualFitness）在跨年数据上会挡掉多少组合。2026 只有大半年，同样要求它盈利。3 x 3 x 2 = 18 个组合。",
+
+  "symbol": "XAUUSD",
+  "period": "m15",
+  "start": "2024-01-01",
+  "end": "2026-08-15",
+
+  "parameters": {
+    "GapExpansionX": { "type": "double", "values": [0.05, 0.10, 0.20] },
+    "RMAPurplePeriod": { "type": "int", "values": [45, 55, 65] },
+    "GapExpansionLookbackBars": { "type": "int", "values": [4, 8] },
+
+    "RMABluePeriod": { "type": "int", "value": 13 },
+    "RMAYellowPeriod": { "type": "int", "value": 13 },
+    "ZigZagLength": { "type": "int", "value": 16 },
+    "TakeProfitR": { "type": "double", "value": 2.0 },
+    "RiskPct": { "type": "double", "value": 1.0 },
+    "StopOffsetTicks": { "type": "int", "value": 50 },
+    "MinStopLossPips": { "type": "double", "value": 5.0 },
+    "BreakevenTriggerR": { "type": "double", "value": 1.0 },
+    "BreakevenOffsetTicks": { "type": "int", "value": 50 },
+    "EntryModel": { "type": "string", "value": "Close" }
+  }
+}

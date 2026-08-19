@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using cAlgo.API;
 
 namespace cAlgo.Robots;
@@ -80,7 +82,12 @@ public class MovingAverageV1 : Robot {
     private Atr14Series _rmaSourceAtr14;
     private MarketStructure _marketStructure;
 
+    // Optimisation only: GetFitness checks the whole run year by year, and GetFitnessArgs does not
+    // carry the window, so the robot has to remember where it started.
+    private DateTime _optimisationWindowStart;
+
     protected override void OnStart() {
+        _optimisationWindowStart = Server.Time;
         LaunchDebug();
         DrawRmaLines();
         _marketStructure = new MarketStructure(Chart, Bars, ZigZagLength);
@@ -182,6 +189,23 @@ public class MovingAverageV1 : Robot {
         if (_orderExecutor.ExecuteIfSignal(signalModel)) {
             _signalMarkers.Draw(signalModel);
         }
+    }
+
+    // Called once per pass by the desktop Optimisation tab only — a plain backtest, CLI or GUI,
+    // never calls it. Passes with a losing (or idle) calendar year sink below every survivor;
+    // survivors keep cTrader's own score. See AnnualFitness.
+    protected override double GetFitness(GetFitnessArgs args) {
+        List<ClosedTradeModel> closedTrades = args.History
+            .Select(trade => new ClosedTradeModel(trade.ClosingTime, trade.NetProfit))
+            .ToList();
+
+        var stats = new FitnessStatsModel {
+            NetProfit = args.NetProfit,
+            WinningTrades = args.WinningTrades,
+            MaxEquityDrawdownPercent = args.MaxEquityDrawdownPercentages
+        };
+
+        return new AnnualFitness(_optimisationWindowStart, Server.Time).Calculate(closedTrades, stats);
     }
 
     protected override void OnStop() {
