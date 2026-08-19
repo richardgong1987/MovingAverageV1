@@ -43,6 +43,8 @@ There is no partial/two-stage exit: reaching the take profit closes the whole po
 - `MovingAverageV1/Orders/`: pure order planning (`PdhpdlOrderPlanner`) and cAlgo order
   execution (`PdhpdlOrderExecutor`).
 - `MovingAverageV1/Risk/`: risk limits, trading-window rules, and position sizing.
+- `MovingAverageV1/Optimisation/`: `AnnualFitness` — the custom optimisation score behind
+  `Robot.GetFitness`.
 - `MovingAverageV1/OrderLogger/`: trade CSV writing and migration of older CSV layouts.
 - `MovingAverageV1/LineDrawer/`: chart-only drawing (RMA lines, signal markers).
 - `MovingAverageV1/Models/`: strategy enums and data-transfer models.
@@ -118,6 +120,23 @@ Batch backtests require a configured local environment, a built `.algo`, cTrader
 and account/API credentials. Default to sequential execution; `--jobs N` is opt-in because
 parallel cTrader report generation can fail intermittently. Consult `scripts/README.md` before
 running or changing the batch workflow.
+
+## Optimisation Fitness
+
+`MovingAverageV1.GetFitness` overrides the platform's default score with `AnnualFitness`: a pass
+only survives if **every calendar year of the run was profitable** — a year with no trades counts
+as a failed year. Survivors keep cTrader's own formula
+(`net profit x winning trades / (1 + max equity drawdown% / 100)`), so their relative order is
+unchanged; failures score negative and sink below all of them.
+
+Two things this affects:
+
+- `GetFitness` runs in the desktop Optimisation tab only. A plain backtest — GUI, CLI, or
+  `scripts/run_optimisation.py`, which is a grid of ordinary backtests — never calls it, so
+  that script's ranking metrics are untouched.
+- `scripts/export_optimisation_passes.py` recomputes the same score offline from each pass's
+  `report.html` (fitness itself is never written to disk). Its formula and `AnnualFitness` must
+  be changed together, or the exported top-N stops matching the desktop table.
 
 ## Known Limitations
 

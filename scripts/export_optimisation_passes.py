@@ -7,13 +7,23 @@
 
 一个 pass 一个目录（report.html / events.json / log.txt / parameters.cbotset），目录名是 pass 号，
 跟名次没有关系。**fitness 本身不落盘**——它只活在界面的那张表里，重启就没了。所以这里从每个
-pass 的 report.html 里嵌的那份回测报告 JSON 重新算一遍：
+pass 的 report.html 里嵌的那份回测报告 JSON 重新算一遍，算法与 cBot 里的 AnnualFitness
+（MovingAverageV1/Optimisation/AnnualFitness.cs）逐条对应：
 
-    fitness = 净利润 × 盈利笔数 ÷ (1 + 最大净值回撤% / 100)
+    回测区间里每个自然年都赚钱  ->  fitness = 净利润 × 盈利笔数 ÷ (1 + 最大净值回撤% / 100)
+    有任何一年没赚钱            ->  fitness = Σ(那些年的净利 − 1)，必为负，排在所有幸存者之后
+    一笔都没成交                ->  fitness = -1e12
 
-这就是 cTrader 在 cBot 没有重写 GetFitness 时用的内置公式，已用界面上 22 个 pass 的
-fitness 逐个对过，误差在 1e-11（浮点舍入）以内。三项都取自 report.html 里的报告 JSON：
-main.netProfit、tradeStatistics.winningTrades.all、equity.maxEquityDrawdownPercent。
+上面那条乘除式是 cTrader 内置公式（cBot 没重写 GetFitness 时用的那个），已用界面上 22 个 pass 的
+fitness 逐个对过，误差在 1e-11（浮点舍入）以内。cBot 现在重写了 GetFitness，界面上的 fitness 就是
+这里算的分数——两边改一边就得改另一边，否则名次对不上。
+
+取自 report.html 里的报告 JSON：main.netProfit、tradeStatistics.winningTrades.all、
+equity.maxEquityDrawdownPercent，年度净利来自 history.items 的 closeTime / net，
+区间来自 main.testingPeriod。
+
+注意：报告里的 closeTime 是 UTC，cBot 那边按机器人时区（东京，UTC+9）分年。跨年夜前 9 小时
+平掉的那一笔，两边会分进不同的年份——只有这种擦边的单子会让名次出现差异。
 
 用法：
 
@@ -33,6 +43,7 @@ import csv
 import json
 import shutil
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 # report.html 把整份回测报告塞在这个 <script> 里，与 CLI 的 --report-json 是同一套结构。
@@ -45,23 +56,37 @@ DEFAULT_DEST = Path.home() / "Downloads" / "tmp"
 DEFAULT_TOP = 50
 
 RANKING_CSV_NAME = "ranking.csv"
-RANKING_COLUMNS = ["名次", "原pass", "fitness", "净利润", "盈利笔数", "总笔数", "最大净值回撤%"]
+RANKING_COLUMNS = ["名次", "原pass", "fitness", "净利润", "盈利笔数", "总笔数", "最大净值回撤%", "未盈利年份"]
+
+# 与 AnnualFitness 里的两个常数一一对应，改一边就得改另一边。
+NO_TRADES_FITNESS = -1e12
+FAILED_YEAR_PENALTY = 1.0
 
 
 class PassResult:
     """一个 pass 目录 + 从它的报告里算出来的 fitness。"""
 
-    def __init__(self, path, net_profit, winning_trades, total_trades, max_equity_drawdown_percent):
+    def __init__(self, path, net_profit, winning_trades, total_trades, max_equity_drawdown_percent, profit_by_year):
         self.path = path
         self.pass_id = path.name
         self.net_profit = net_profit
         self.winning_trades = winning_trades
         self.total_trades = total_trades
         self.max_equity_drawdown_percent = max_equity_drawdown_percent
+        # 年 -> 该年净利，区间里一笔没成交的年份也在，值为 0（这种年份同样算没盈利）。
+        self.profit_by_year = profit_by_year
+
+    @property
+    def failed_years(self):
+        return sorted(year for year, profit in self.profit_by_year.items() if profit <= 0)
 
     @property
     def fitness(self):
-        return self.net_profit * self.winning_trades / (1 + self.max_equity_drawdown_percent / 100)
+        if not self.profit_by_year:
+            return NO_TRADES_FITNESS
+        if not self.failed_years:
+            return self.net_profit * self.winning_trades / (1 + self.max_equity_drawdown_percent / 100)
+        return sum(self.profit_by_year[year] - FAILED_YEAR_PENALTY for year in self.failed_years)
 
     @property
     def sort_key(self):
@@ -150,12 +175,19 @@ def read_pass_results(source):
 
 
 def print_ranking(ranked):
-    print(f"{'名次':>4} {'pass':>6} {'fitness':>20} {'净利润':>14} {'盈利/总':>10} {'回撤%':>8}")
+    print(f"{'名次':>4} {'pass':>6} {'fitness':>20} {'净利润':>14} {'盈利/总':>10} {'回撤%':>8}  未盈利年份")
     for rank, result in enumerate(ranked, start=1):
         print(
             f"{rank:>4} {result.pass_id:>6} {result.fitness:>20,.2f} {result.net_profit:>14,.2f} "
             f"{result.winning_trades:>4}/{result.total_trades:<5} {result.max_equity_drawdown_percent:>8.2f}"
+            f"  {_format_failed_years(result)}"
         )
+
+
+def _format_failed_years(result):
+    if not result.profit_by_year:
+        return "无成交"
+    return ",".join(str(year) for year in result.failed_years)
 
 
 def prepare_dest(dest, force):
@@ -183,6 +215,7 @@ def write_ranking_csv(ranked, csv_path):
                     result.winning_trades,
                     result.total_trades,
                     round(result.max_equity_drawdown_percent, 2),
+                    _format_failed_years(result),
                 ]
             )
     return csv_path
@@ -200,9 +233,37 @@ def _read_pass(pass_dir):
             winning_trades=int(report["tradeStatistics"]["winningTrades"]["all"]),
             total_trades=int(report["tradeStatistics"]["totalTrades"]["all"]),
             max_equity_drawdown_percent=float(report["equity"]["maxEquityDrawdownPercent"]),
+            profit_by_year=_profit_by_year(report),
         )
     except (KeyError, TypeError, ValueError):
         return None
+
+
+def _profit_by_year(report):
+    """按平仓年份汇总净利，并把回测区间里一笔没成交的年份补成 0。
+
+    补零这一步就是过滤的重点：空转的一年在 history 里没有任何痕迹，不补上就会被当成「没有这一年」
+    而蒙混过关。区间边界外平掉的单子也保留（cBot 那边同样保留），它照样是没赚钱的一年。
+    """
+    profit_by_year = {}
+    history = report.get("history") or {}
+    for trade in history.get("items") or []:
+        year = _epoch_ms_year(trade["closeTime"])
+        profit_by_year[year] = profit_by_year.get(year, 0.0) + float(trade["net"])
+
+    if not profit_by_year:
+        return {}
+
+    testing_period = report["main"]["testingPeriod"]
+    first_year = min(_epoch_ms_year(testing_period["startDate"]), min(profit_by_year))
+    last_year = max(_epoch_ms_year(testing_period["endDate"]), max(profit_by_year))
+    for year in range(first_year, last_year + 1):
+        profit_by_year.setdefault(year, 0.0)
+    return profit_by_year
+
+
+def _epoch_ms_year(epoch_ms):
+    return datetime.fromtimestamp(epoch_ms / 1000, tz=timezone.utc).year
 
 
 def _load_report(report_path):
