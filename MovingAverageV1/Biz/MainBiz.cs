@@ -30,6 +30,7 @@ public class MainBiz {
 
         // 每一笔作空都要吃掉一个新的 LL：MarketStructure 最后标出的必须是 LL（LH 不算），
         // 而且要是上一笔作空之后才新出的那一个。
+        signalModel.KeyLevel = "黄<蓝<紫";
         return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Short, signalModel.LatestPivot, signalModel.PivotCount);
     }
 
@@ -75,6 +76,7 @@ public class MainBiz {
 
         // 每一笔作多都要吃掉一个新的 HH：MarketStructure 最后标出的必须是 HH（HL 不算），
         // 而且要是上一笔作多之后才新出的那一个。
+        signalModel.KeyLevel = "黄>蓝>紫";
         return entryGate.IsAllowed(PdhpdlTradeDirectionModel.Long, signalModel.LatestPivot, signalModel.PivotCount);
     }
 

@@ -33,7 +33,7 @@ public class MovingAverageV1 : Robot {
     [Parameter("回撤开仓模式", DefaultValue = PdhpdlEntryModel.Close, Group = "风控配置")]
     public PdhpdlEntryModel EntryModel { get; set; }
 
-    [Parameter("启动时清空交易记录CSV", DefaultValue = false, Group = "开发调试")]
+    [Parameter("启动时清空交易记录CSV", DefaultValue = true, Group = "开发调试")]
     public bool ResetTradeLogOnStart { get; set; }
 
     [Parameter("debug调试", DefaultValue = false, Group = "开发调试")]

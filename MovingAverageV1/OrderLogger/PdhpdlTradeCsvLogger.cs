@@ -74,13 +74,12 @@ public class PdhpdlTradeCsvLogger {
         if (planModel == null || order == null)
             return "";
 
-        string keyLevel = planModel.DirectionModel == PdhpdlTradeDirectionModel.Long ? "PDL" : "PDH";
+        string keyLevel = planModel.KeyLevel;
         string csvId = order.Id.ToString();
-
         var record = new PdhpdlTradeCsvRecordModel {
             Id = csvId,
             KeyLevel = keyLevel,
-            Signal = "false-breakout",
+            Signal = planModel.SignalName,
             EntryMode = GetEntryModeCsvValue(planModel.EntryModel),
             Comment = "ENTRY",
             Symbol = symbolName,
