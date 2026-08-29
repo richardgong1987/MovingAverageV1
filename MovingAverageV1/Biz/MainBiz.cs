@@ -127,7 +127,6 @@ public class MainBiz {
         double bandHigh = Math.Max(signalModel.YellowRma, signalModel.BlueRma);
 
         foreach (CandleModel candle in patternCandles) {
-            signalModel.KeyLevel = "";
             if (candle.Low <= bandHigh && candle.High >= bandLow)
                 return true;
         }
