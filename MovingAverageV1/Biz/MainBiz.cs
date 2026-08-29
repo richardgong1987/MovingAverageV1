@@ -8,6 +8,45 @@ public class MainBiz {
         HanJinSignalScanModel scanResult = HanJinSignals26.Scan(current, previous, earlier);
         signalModel.IsLongSignal = IsLongSignal(signalModel, scanResult, current, previous, earlier, entryGate);
         signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous, earlier, entryGate);
+        signalModel.KeyLevel = ResolveKeyLevel(signalModel, current, previous, earlier);
+    }
+
+    private static string ResolveKeyLevel(PdhpdlSignalModel signalModel, CandleModel current, CandleModel previous, CandleModel earlier) {
+        if (!signalModel.IsLongSignal && !signalModel.IsShortSignal)
+            return "";
+
+        if (double.IsNaN(signalModel.YellowRma) || double.IsNaN(signalModel.BlueRma))
+            return "";
+
+        CandleModel[] patternCandles = signalModel.Label switch {
+            "L_Pin" or "S_Pin" => new[] { current },
+            "L_Eng" or "S_Eng" => new[] { current, previous },
+            "L_Bot" or "S_Top" => new[] { current, previous, earlier },
+            "L_Harami" or "S_Harami" => new[] { current, previous, earlier },
+            _ => Array.Empty<CandleModel>(),
+        };
+
+        if (patternCandles.Length == 0)
+            return "";
+
+        bool touchesYellow = false;
+        bool touchesBlue = false;
+
+        foreach (CandleModel candle in patternCandles) {
+            touchesYellow |= candle.Low <= signalModel.YellowRma && candle.High >= signalModel.YellowRma;
+            touchesBlue |= candle.Low <= signalModel.BlueRma && candle.High >= signalModel.BlueRma;
+        }
+
+        if (touchesYellow && touchesBlue)
+            return "黄蓝";
+
+        if (touchesYellow)
+            return "黄";
+
+        if (touchesBlue)
+            return "蓝";
+
+        return "夹间";
     }
 
     private static bool IsShortSignal(PdhpdlSignalModel signalModel, HanJinSignalScanModel scanResult, CandleModel current,
