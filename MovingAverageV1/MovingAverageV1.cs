@@ -12,10 +12,10 @@ public class MovingAverageV1 : Robot {
     [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 15.0, Step = 0.1, Group = "风控配置")]
     public double RiskPct { get; set; }
 
-    [Parameter("安全系数", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 1.0, Step = 0.05, Group = "风控配置")]
+    [Parameter("安全系数", DefaultValue = 0.9, MinValue = 0.1, MaxValue = 1.0, Step = 0.05, Group = "风控配置")]
     public double RiskSafetyFactor { get; set; }
 
-    [Parameter("止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 2000, Group = "风控配置")]
+    [Parameter("止损偏移点数", DefaultValue = 400, MinValue = 0, MaxValue = 2000, Group = "风控配置")]
     public int StopOffsetTicks { get; set; }
 
     [Parameter("最小止损点数 (Pips)", DefaultValue = 5.0, MinValue = 0.0, Step = 0.1, Group = "风控配置")]
@@ -30,7 +30,7 @@ public class MovingAverageV1 : Robot {
     [Parameter("保护止损偏移点数", DefaultValue = 50, MinValue = 0, MaxValue = 2000, Group = "风控配置")]
     public int BreakevenOffsetTicks { get; set; }
 
-    [Parameter("回撤开仓模式", DefaultValue = PdhpdlEntryModel.Close, Group = "风控配置")]
+    [Parameter("回撤开仓模式", DefaultValue = PdhpdlEntryModel.Pb50, Group = "风控配置")]
     public PdhpdlEntryModel EntryModel { get; set; }
 
     [Parameter("启动时清空交易记录CSV", DefaultValue = true, Group = "开发调试")]
@@ -56,7 +56,7 @@ public class MovingAverageV1 : Robot {
 
     // 开口扩大闸门：(现在的蓝紫开口 - N 根 15 分钟 K 线之前的开口) / 60分钟 ATR14 ≥ X 才开仓。
     // 蓝紫线跑在 60 分钟上，所以 N 会换算成 60 分钟的根数：4（1 小时前）→ 1 根，8（2 小时前）→ 2 根。
-    [Parameter("开口回看N (15分钟K线)", DefaultValue = 4, MinValue = 4, Group = "均线")]
+    [Parameter("开口回看N (15分钟K线)", DefaultValue = 12, MinValue = 4, Group = "均线")]
     public int GapExpansionLookbackBars { get; set; }
 
     [Parameter("开口扩大X (ATR倍数, 0=关闭)", DefaultValue = 0.10, MinValue = 0.0, Step = 0.05, Group = "均线")]
