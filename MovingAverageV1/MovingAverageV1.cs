@@ -9,6 +9,9 @@ namespace cAlgo.Robots;
 
 [Robot(TimeZone = TimeZones.TokyoStandardTime, AccessRights = AccessRights.FullAccess, AddIndicators = false)]
 public class MovingAverageV1 : Robot {
+    [Parameter("订单标签", DefaultValue = "MovingAverageV1-label")]
+    public string OrderLabel { get; set; }
+
     [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 15.0, Step = 0.1, Group = "风控配置")]
     public double RiskPct { get; set; }
 
@@ -87,6 +90,13 @@ public class MovingAverageV1 : Robot {
     private DateTime _optimisationWindowStart;
 
     protected override void OnStart() {
+        // A blank label would make every "_L"/"_S" label on the symbol look like this bot's order.
+        if (string.IsNullOrWhiteSpace(OrderLabel)) {
+            Print("*****OrderLabel must not be empty. cBot stopped.");
+            Stop();
+            return;
+        }
+
         _optimisationWindowStart = Server.Time;
         LaunchDebug();
         DrawRmaLines();
@@ -107,8 +117,8 @@ public class MovingAverageV1 : Robot {
         var riskGuard = new PdhpdlRiskGuard(BuildRiskGuardConfig());
         var symbolModel = new CAlgoSymbolModel(Symbol);
         var planner = new PdhpdlOrderPlanner(symbolModel, riskGuard, StopOffsetTicks, TakeProfitR, EntryModel, RiskPct);
-        _orderExecutor = new PdhpdlOrderExecutor(this, SymbolName, Bars.TimeFrame.ToString(), planner, riskGuard, _csvLogger, symbolModel,
-            entryGate, BreakevenTriggerR, BreakevenOffsetTicks);
+        _orderExecutor = new PdhpdlOrderExecutor(this, SymbolName, Bars.TimeFrame.ToString(), OrderLabel.Trim(), planner, riskGuard,
+            _csvLogger, symbolModel, entryGate, BreakevenTriggerR, BreakevenOffsetTicks);
 
         Print("*****MovingAverageV1 started.");
     }
