@@ -34,8 +34,9 @@ public class PdhpdlSignalDetector {
                 $"Gap-expansion lookback must cover at least one {rmaSeries.BluePurpleTimeFrameMinutes}-minute bar.");
     }
 
-    public PdhpdlSignalModel DetectOnClosedBar() {
+    public PdhpdlSignalModel DetectOnClosedBar(bool IsUseWickRatio) {
         PdhpdlSignalModel signalModel = new();
+        signalModel.IsUseWickRatio = IsUseWickRatio;
         if (_chartBars.Count < 2)
             return signalModel;
 

@@ -12,6 +12,9 @@ public class MovingAverageV1 : Robot {
     [Parameter("订单标签", DefaultValue = "MovingAverageV1-label")]
     public string OrderLabel { get; set; }
 
+    [Parameter("是否使用引线比例", DefaultValue = true)]
+    public bool IsUseWickRatio { get; set; }
+
     [Parameter("风险1%", DefaultValue = 1.0, MinValue = 0.1, MaxValue = 15.0, Step = 0.1, Group = "风控配置")]
     public double RiskPct { get; set; }
 
@@ -181,7 +184,7 @@ public class MovingAverageV1 : Robot {
     }
 
     private void HandleClosedBarSignal() {
-        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar();
+        PdhpdlSignalModel signalModel = _signalDetector.DetectOnClosedBar(IsUseWickRatio);
         if (!signalModel.HasData)
             return;
 
@@ -206,13 +209,10 @@ public class MovingAverageV1 : Robot {
     // survivors keep cTrader's own score. See AnnualFitness.
     protected override double GetFitness(GetFitnessArgs args) {
         List<ClosedTradeModel> closedTrades = args.History
-            .Select(trade => new ClosedTradeModel(trade.ClosingTime, trade.NetProfit))
-            .ToList();
+            .Select(trade => new ClosedTradeModel(trade.ClosingTime, trade.NetProfit)).ToList();
 
         var stats = new FitnessStatsModel {
-            NetProfit = args.NetProfit,
-            WinningTrades = args.WinningTrades,
-            MaxEquityDrawdownPercent = args.MaxEquityDrawdownPercentages
+            NetProfit = args.NetProfit, WinningTrades = args.WinningTrades, MaxEquityDrawdownPercent = args.MaxEquityDrawdownPercentages
         };
 
         return new AnnualFitness(_optimisationWindowStart, Server.Time).Calculate(closedTrades, stats);

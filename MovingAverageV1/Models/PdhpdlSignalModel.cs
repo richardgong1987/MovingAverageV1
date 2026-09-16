@@ -3,6 +3,7 @@ using System;
 namespace cAlgo.Robots;
 
 public class PdhpdlSignalModel {
+    public bool IsUseWickRatio { get; set; }
     public bool HasData { get; set; }
 
     public DateTime BarTime { get; set; }

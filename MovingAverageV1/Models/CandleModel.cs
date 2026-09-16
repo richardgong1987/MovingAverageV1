@@ -5,12 +5,13 @@ namespace cAlgo.Robots;
 // One candle's OHLC plus the geometry the HanJin patterns read (body edges, range,
 // direction). Mirrors the private helpers of the Pine library so the pattern code stays a
 // direct, readable translation. Pure value type — no cAlgo dependency.
-public readonly struct CandleModel {
+public struct CandleModel {
     public CandleModel(double open, double high, double low, double close) {
         Open = open;
         High = high;
         Low = low;
         Close = close;
+        IsUseWickRatio = true;
     }
 
     public double Open { get; }
@@ -45,4 +46,5 @@ public readonly struct CandleModel {
 
     // 是否下引线过大，超过40%
     public bool HasLongLowerWick => HasRange && (BodyBottom - Low) / Range > LongWickMinFraction;
+    public bool IsUseWickRatio { set; get; }
 }

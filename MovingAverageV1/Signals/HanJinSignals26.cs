@@ -54,12 +54,22 @@ public static class HanJinSignals26 {
     public static SignalSideModel Engulf(CandleModel current, CandleModel previous) {
         bool isEngulfing = current.High > previous.High && current.Low < previous.Low;
         if (isEngulfing) {
-            if (current.IsBullish && !current.HasLongUpperWick) {
-                return SignalSideModel.Buy;
-            }
+            if (current.IsUseWickRatio) {
+                if (current.IsBullish && !current.HasLongUpperWick) {
+                    return SignalSideModel.Buy;
+                }
 
-            if (current.IsBearish && !current.HasLongLowerWick) {
-                return SignalSideModel.Sell;
+                if (current.IsBearish && !current.HasLongLowerWick) {
+                    return SignalSideModel.Sell;
+                }
+            } else {
+                if (current.IsBullish) {
+                    return SignalSideModel.Buy;
+                }
+
+                if (current.IsBearish) {
+                    return SignalSideModel.Sell;
+                }
             }
         }
 
@@ -75,10 +85,15 @@ public static class HanJinSignals26 {
     // the high line AND the low line.
     public static (SignalSideModel Top, SignalSideModel Bottom) Fractal(CandleModel current, CandleModel previous, CandleModel earlier) {
         bool isTop = previous.High > earlier.High && previous.High > current.High && previous.Low > earlier.Low &&
-                     previous.Low > current.Low && previous.BodyBottom > current.Close && current.IsBearish && !current.HasLongLowerWick;
+                     previous.Low > current.Low && previous.BodyBottom > current.Close && current.IsBearish;
 
         bool isBottom = earlier.Low > previous.Low && previous.Low < current.Low && earlier.High > previous.High &&
                         previous.High < current.High && previous.BodyTop < current.Close && current.IsBullish && !current.HasLongUpperWick;
+
+        if (current.IsUseWickRatio) {
+            isTop = isTop && !current.HasLongLowerWick;
+            isBottom = isBottom && !current.HasLongUpperWick;
+        }
 
         return (isTop ? SignalSideModel.Sell : SignalSideModel.None, isBottom ? SignalSideModel.Buy : SignalSideModel.None);
     }

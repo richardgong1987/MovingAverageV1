@@ -5,6 +5,7 @@ namespace cAlgo.Robots;
 public class MainBiz {
     public static void Evaluate(PdhpdlSignalModel signalModel, CandleModel current, CandleModel previous, CandleModel earlier,
         PivotEntryGate entryGate) {
+        current.IsUseWickRatio = signalModel.IsUseWickRatio;
         HanJinSignalScanModel scanResult = HanJinSignals26.Scan(current, previous, earlier);
         signalModel.IsLongSignal = IsLongSignal(signalModel, scanResult, current, previous, earlier, entryGate);
         signalModel.IsShortSignal = IsShortSignal(signalModel, scanResult, current, previous, earlier, entryGate);
